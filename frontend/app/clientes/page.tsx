@@ -3,7 +3,6 @@
 import { toast } from 'sonner';
 import { useClientes, useDeleteCliente, useRestoreCliente } from '@/hooks';
 import { ClientesDataTable } from '@/components/clientes/clientes-data-table';
-import { ClientesSectionCards } from '@/components/clientes/clientes-section-cards';
 import { AppSidebar } from "@/components/shared/app-sidebar";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
@@ -35,12 +34,6 @@ export default function Page() {
     }
   };
 
-  // Estatísticas
-  const totalClientes = clientes?.length || 0;
-  const clientesAtivos = clientes?.filter(c => c.ativo).length || 0;
-  const clientesInativos = totalClientes - clientesAtivos;
-  const percentualAtivos = totalClientes > 0 ? Math.round((clientesAtivos / totalClientes) * 100) : 0;
-
   return (
     <SidebarProvider
       style={
@@ -68,12 +61,6 @@ export default function Page() {
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <ClientesSectionCards
-                totalClientes={totalClientes}
-                clientesAtivos={clientesAtivos}
-                clientesInativos={clientesInativos}
-                percentualAtivos={percentualAtivos}
-              />
               <ClientesDataTable
                 data={clientes || []}
                 onDelete={handleDelete}

@@ -7,7 +7,11 @@ import {
   CreditCard,
   LogOut,
   Sparkles,
+  Moon,
+  Sun,
+  Monitor,
 } from "lucide-react"
+import { useTheme } from "next-themes"
 
 import {
   Avatar,
@@ -40,6 +44,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const { setTheme, theme } = useTheme()
 
   return (
     <SidebarMenu>
@@ -82,29 +87,36 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
                 <BadgeCheck />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
+                Conta
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Bell />
-                Notifications
+                Notificações
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              Tema
+            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => setTheme("light")}>
+                <Sun className={theme === "light" ? "text-primary" : ""} />
+                Claro
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme("dark")}>
+                <Moon className={theme === "dark" ? "text-primary" : ""} />
+                Escuro
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme("system")}>
+                <Monitor className={theme === "system" ? "text-primary" : ""} />
+                Sistema
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <LogOut />
-              Log out
+              Sair
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

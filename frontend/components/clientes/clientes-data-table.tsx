@@ -12,6 +12,8 @@ import {
   IconPencil,
   IconTrash,
   IconRefresh,
+  IconPlus,
+  IconUsers,
 } from "@tabler/icons-react"
 import {
   ColumnDef,
@@ -176,7 +178,7 @@ export function ClientesDataTable({
                 size="icon"
               >
                 <IconDotsVertical />
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">Abrir menu</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
@@ -184,7 +186,7 @@ export function ClientesDataTable({
                 onClick={() => router.push(`/clientes/${cliente.id}`)}
               >
                 <IconPencil className="mr-2 size-4" />
-                Edit
+                Editar
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {cliente.ativo ? (
@@ -193,12 +195,12 @@ export function ClientesDataTable({
                   onClick={() => onDelete(cliente.id)}
                 >
                   <IconTrash className="mr-2 size-4" />
-                  Delete
+                  Desativar
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem onClick={() => onRestore(cliente.id)}>
                   <IconRefresh className="mr-2 size-4" />
-                  Restore
+                  Reativar
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -249,8 +251,8 @@ export function ClientesDataTable({
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
                 <IconLayoutColumns />
-                <span className="hidden lg:inline">Customize Columns</span>
-                <span className="lg:hidden">Columns</span>
+                <span className="hidden lg:inline">Colunas</span>
+                <span className="lg:hidden">Colunas</span>
                 <IconChevronDown />
               </Button>
             </DropdownMenuTrigger>
@@ -279,6 +281,11 @@ export function ClientesDataTable({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        <Button onClick={() => router.push('/clientes/novo')} size="sm">
+          <IconPlus className="size-4" />
+          <span className="hidden lg:inline">Novo Cliente</span>
+          <span className="lg:hidden">Novo</span>
+        </Button>
       </div>
       <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
         <div className="overflow-hidden rounded-lg border">
@@ -322,9 +329,27 @@ export function ClientesDataTable({
                 <TableRow>
                   <TableCell
                     colSpan={tableColumns.length}
-                    className="h-24 text-center"
+                    className="h-[400px]"
                   >
-                    No results.
+                    <div className="flex flex-col items-center justify-center gap-4 text-center">
+                      <div className="bg-muted flex size-20 items-center justify-center rounded-full">
+                        <IconUsers className="text-muted-foreground size-10" />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <h3 className="text-lg font-semibold">Nenhum cliente encontrado</h3>
+                        <p className="text-muted-foreground text-sm">
+                          {data.length === 0
+                            ? "Comece adicionando seu primeiro cliente."
+                            : "Tente ajustar os filtros para encontrar o que procura."}
+                        </p>
+                      </div>
+                      {data.length === 0 && (
+                        <Button onClick={() => router.push('/clientes/novo')}>
+                          <IconPlus className="size-4" />
+                          Adicionar Cliente
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
@@ -333,13 +358,13 @@ export function ClientesDataTable({
         </div>
         <div className="flex items-center justify-between px-4">
           <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
+            {table.getFilteredSelectedRowModel().rows.length} de{" "}
+            {table.getFilteredRowModel().rows.length} linha(s) selecionada(s).
           </div>
           <div className="flex w-full items-center gap-8 lg:w-fit">
             <div className="hidden items-center gap-2 lg:flex">
               <Label htmlFor="rows-per-page" className="text-sm font-medium">
-                Rows per page
+                Linhas por página
               </Label>
               <Select
                 value={`${table.getState().pagination.pageSize}`}
@@ -362,7 +387,7 @@ export function ClientesDataTable({
               </Select>
             </div>
             <div className="flex w-fit items-center justify-center text-sm font-medium">
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
+              Página {table.getState().pagination.pageIndex + 1} de{" "}
               {table.getPageCount()}
             </div>
             <div className="ml-auto flex items-center gap-2 lg:ml-0">
@@ -372,7 +397,7 @@ export function ClientesDataTable({
                 onClick={() => table.setPageIndex(0)}
                 disabled={!table.getCanPreviousPage()}
               >
-                <span className="sr-only">Go to first page</span>
+                <span className="sr-only">Ir para primeira página</span>
                 <IconChevronsLeft />
               </Button>
               <Button
@@ -382,7 +407,7 @@ export function ClientesDataTable({
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
               >
-                <span className="sr-only">Go to previous page</span>
+                <span className="sr-only">Ir para página anterior</span>
                 <IconChevronLeft />
               </Button>
               <Button
@@ -392,7 +417,7 @@ export function ClientesDataTable({
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
               >
-                <span className="sr-only">Go to next page</span>
+                <span className="sr-only">Ir para próxima página</span>
                 <IconChevronRight />
               </Button>
               <Button
@@ -402,7 +427,7 @@ export function ClientesDataTable({
                 onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                 disabled={!table.getCanNextPage()}
               >
-                <span className="sr-only">Go to last page</span>
+                <span className="sr-only">Ir para última página</span>
                 <IconChevronsRight />
               </Button>
             </div>
