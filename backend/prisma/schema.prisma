@@ -1,0 +1,1125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// CONFIGURAÇÕES DO SISTEMA
+// ============================================
+
+model Empresa {
+  id                String   @id @default(uuid())
+  razaoSocial       String
+  nomeFantasia      String?
+  cnpj              String   @unique
+  inscricaoEstadual String?
+  inscricaoMunicipal String?
+  regimeTributario  RegimeTributario
+  crt               Int // Código de Regime Tributário
+  
+  // Endereço
+  cep               String
+  logradouro        String
+  numero            String
+  complemento       String?
+  bairro            String
+  cidade            String
+  uf                String
+  codigoMunicipio   String
+  
+  // Contato
+  telefone          String?
+  celular           String?
+  email             String?
+  site              String?
+  
+  // Certificado Digital
+  certificadoDigital Bytes?
+  senhaCertificado  String?
+  validadeCertificado DateTime?
+  
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relações
+  usuarios          Usuario[]
+  clientes          Cliente[]
+  produtos          Produto[]
+  vendas            Venda[]
+  notasFiscais      NotaFiscal[]
+  configuracoesNFe  ConfiguracaoNFe[]
+  configuracoesNFCe ConfiguracaoNFCe[]
+  configuracoesNFSe ConfiguracaoNFSe[]
+  configuracoesMatrizFiscal MatrizFiscal[]
+  naturezasOperacao NaturezaOperacao[]
+  
+  @@map("empresas")
+}
+
+model Usuario {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  senha     String
+  perfil    PerfilUsuario
+  ativo     Boolean  @default(true)
+  
+  empresaId String
+  empresa   Empresa  @relation(fields: [empresaId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("usuarios")
+}
+
+// ============================================
+// CLIENTES
+// ============================================
+
+model Cliente {
+  id                String   @id @default(uuid())
+  tipo              TipoPessoa
+
+  // Pessoa Física
+  nome              String
+  apelido           String?
+  cpf               String?  @unique
+  rg                String?
+  rgEmissor         String?
+  rgUf              String?
+  sexo              Sexo?
+  dataNascimento    DateTime?
+
+  // Pessoa Jurídica
+  razaoSocial       String?
+  nomeFantasia      String?
+  cnpj              String?  @unique
+  inscricaoEstadual String?
+  inscricaoMunicipal String?
+  indicadorIE       Int      @default(9) // 1=Contribuinte ICMS, 2=Isento, 9=Não Contribuinte
+
+  // Contato
+  telefone          String?
+  celular           String?
+  email             String?
+  emailNFe          String?
+  site              String?
+
+  // Fiscal
+  issRetido         Boolean  @default(false)
+  consumidorFinal   Boolean  @default(true)
+  produtorRural     Boolean  @default(false)
+
+  // Financeiro
+  limiteCredito     Decimal  @default(0) @db.Decimal(10, 2)
+  bloqueado         Boolean  @default(false)
+
+  observacao        String?
+
+  empresaId         String
+  empresa           Empresa  @relation(fields: [empresaId], references: [id])
+
+  tipoPrecoId       String?
+  tipoPreco         TipoPreco? @relation(fields: [tipoPrecoId], references: [id])
+
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relações
+  enderecos         EnderecoCliente[]
+  contatos          ContatoCliente[]
+  dadosBancarios    DadoBancarioCliente[]
+  vendas            Venda[]
+  notasFiscais      NotaFiscal[]
+
+  @@map("clientes")
+}
+
+model EnderecoCliente {
+  id          String   @id @default(uuid())
+  tipo        TipoEndereco
+  cep         String
+  logradouro  String
+  numero      String
+  complemento String?
+  bairro      String
+  cidade      String
+  uf          String
+  codigoMunicipio String?
+  principal   Boolean  @default(false)
+  
+  clienteId   String
+  cliente     Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("enderecos_clientes")
+}
+
+model ContatoCliente {
+  id        String   @id @default(uuid())
+  nome      String
+  cargo     String?
+  telefone  String?
+  celular   String?
+  email     String?
+  
+  clienteId String
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("contatos_clientes")
+}
+
+model DadoBancarioCliente {
+  id          String   @id @default(uuid())
+  banco       String
+  agencia     String
+  conta       String
+  tipoConta   TipoConta
+  
+  clienteId   String
+  cliente     Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("dados_bancarios_clientes")
+}
+
+model TipoPreco {
+  id        String    @id @default(uuid())
+  nome      String
+  descricao String?
+  ativo     Boolean   @default(true)
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  clientes  Cliente[]
+  precosProdutos PrecoProduto[]
+  
+  @@map("tipos_precos")
+}
+
+// ============================================
+// PRODUTOS
+// ============================================
+
+model Produto {
+  id                String   @id @default(uuid())
+  codigo            String   @unique
+  codigoInterno     String?
+  codigoBalanca     String?
+  descricao         String
+  tipo              TipoItem
+  
+  unidadeId         String
+  unidade           Unidade  @relation(fields: [unidadeId], references: [id])
+  
+  categoriaId       String?
+  categoria         Categoria? @relation(fields: [categoriaId], references: [id])
+  
+  subcategoriaId    String?
+  subcategoria      Subcategoria? @relation(fields: [subcategoriaId], references: [id])
+  
+  marcaId           String?
+  marca             Marca?   @relation(fields: [marcaId], references: [id])
+  
+  modelo            String?
+  tags              String[]
+  
+  // Preços
+  custoUltimaCompra Decimal  @default(0) @db.Decimal(10, 2)
+  precoVenda        Decimal  @default(0) @db.Decimal(10, 2)
+  precoAtacado      Decimal  @default(0) @db.Decimal(10, 2)
+  qtdeMinimaAtacado Int      @default(0)
+  
+  // Estoque
+  movimentaEstoque  Boolean  @default(true)
+  movimentaComposicao Boolean @default(false)
+  estoqueAtual      Decimal  @default(0) @db.Decimal(10, 3)
+  estoqueMinimo     Decimal  @default(0) @db.Decimal(10, 3)
+  estoqueMaximo     Decimal  @default(0) @db.Decimal(10, 3)
+  
+  // Fiscal
+  ncm               String?
+  cest              String?
+  origem            Int?
+  
+  // Imagem
+  imagemUrl         String?
+  
+  empresaId         String
+  empresa           Empresa  @relation(fields: [empresaId], references: [id])
+  
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relações
+  precos            PrecoProduto[]
+  composicao        ComposicaoProduto[] @relation("ProdutoPrincipal")
+  componenteDe      ComposicaoProduto[] @relation("ProdutoComponente")
+  itensVenda        ItemVenda[]
+  itensNotaFiscal   ItemNotaFiscal[]
+  
+  @@map("produtos")
+}
+
+model PrecoProduto {
+  id            String    @id @default(uuid())
+  valor         Decimal   @db.Decimal(10, 2)
+  
+  produtoId     String
+  produto       Produto   @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  
+  tipoPrecoId   String
+  tipoPreco     TipoPreco @relation(fields: [tipoPrecoId], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@unique([produtoId, tipoPrecoId])
+  @@map("precos_produtos")
+}
+
+model ComposicaoProduto {
+  id                String   @id @default(uuid())
+  quantidade        Decimal  @db.Decimal(10, 3)
+  
+  produtoPrincipalId String
+  produtoPrincipal  Produto  @relation("ProdutoPrincipal", fields: [produtoPrincipalId], references: [id], onDelete: Cascade)
+  
+  produtoComponenteId String
+  produtoComponente Produto  @relation("ProdutoComponente", fields: [produtoComponenteId], references: [id])
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("composicao_produtos")
+}
+
+model Unidade {
+  id        String    @id @default(uuid())
+  sigla     String    @unique
+  descricao String
+  ativo     Boolean   @default(true)
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  produtos  Produto[]
+  
+  @@map("unidades")
+}
+
+model Categoria {
+  id            String         @id @default(uuid())
+  nome          String
+  descricao     String?
+  ativo         Boolean        @default(true)
+  
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  produtos      Produto[]
+  subcategorias Subcategoria[]
+  
+  @@map("categorias")
+}
+
+model Subcategoria {
+  id          String    @id @default(uuid())
+  nome        String
+  descricao   String?
+  ativo       Boolean   @default(true)
+  
+  categoriaId String
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  produtos    Produto[]
+  
+  @@map("subcategorias")
+}
+
+model Marca {
+  id        String    @id @default(uuid())
+  nome      String
+  descricao String?
+  ativo     Boolean   @default(true)
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  produtos  Produto[]
+  
+  @@map("marcas")
+}
+
+// ============================================
+// VENDAS
+// ============================================
+
+model Venda {
+  id                String      @id @default(uuid())
+  numero            String      @unique
+  tipo              TipoVenda
+  status            StatusVenda
+
+  clienteId         String
+  cliente           Cliente     @relation(fields: [clienteId], references: [id])
+
+  empresaId         String
+  empresa           Empresa     @relation(fields: [empresaId], references: [id])
+
+  // Valores
+  subtotal          Decimal     @db.Decimal(10, 2)
+  desconto          Decimal     @default(0) @db.Decimal(10, 2)
+  acrescimo         Decimal     @default(0) @db.Decimal(10, 2)
+  valorTotal        Decimal     @db.Decimal(10, 2)
+
+  // Observações
+  observacao        String?
+  observacaoInterna String?
+
+  // Datas
+  dataEmissao       DateTime    @default(now())
+  dataValidade      DateTime?
+  dataFechamento    DateTime?
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relações
+  itens             ItemVenda[]
+  notaFiscal        NotaFiscal?
+
+  @@map("vendas")
+}
+
+model ItemVenda {
+  id          String   @id @default(uuid())
+  sequencia   Int
+
+  produtoId   String
+  produto     Produto  @relation(fields: [produtoId], references: [id])
+
+  vendaId     String
+  venda       Venda    @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+
+  quantidade  Decimal  @db.Decimal(10, 3)
+  valorUnitario Decimal @db.Decimal(10, 2)
+  desconto    Decimal  @default(0) @db.Decimal(10, 2)
+  acrescimo   Decimal  @default(0) @db.Decimal(10, 2)
+  valorTotal  Decimal  @db.Decimal(10, 2)
+
+  observacao  String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("itens_vendas")
+}
+
+// ============================================
+// NOTAS FISCAIS
+// ============================================
+
+model NotaFiscal {
+  id                String         @id @default(uuid())
+  modelo            ModeloNF
+  serie             String
+  numero            Int
+  chave             String?        @unique
+
+  // Identificação
+  codigoNumerico    String?        // cNF
+  digitoVerificador Int?           // cDV
+  tipo              TipoOperacao
+  finalidade        FinalidadeNF
+  tipoEmissao       Int            @default(1) // tpEmis: 1=Normal
+  tipoImpressao     Int            @default(1) // tpImp: 1=Retrato
+  destinoOperacao   Int            @default(1) // idDest: 1=Interna, 2=Interestadual, 3=Exterior
+  indicadorPresenca Int            @default(1) // indPres: 1=Presencial
+  indicadorFinal    Int            @default(1) // indFinal: 1=Consumidor Final
+
+  clienteId         String
+  cliente           Cliente        @relation(fields: [clienteId], references: [id])
+
+  empresaId         String
+  empresa           Empresa        @relation(fields: [empresaId], references: [id])
+
+  vendaId           String?        @unique
+  venda             Venda?         @relation(fields: [vendaId], references: [id])
+
+  naturezaOperacaoId String
+  naturezaOperacao  NaturezaOperacao @relation(fields: [naturezaOperacaoId], references: [id])
+
+  // Valores
+  valorProdutos     Decimal        @db.Decimal(10, 2)
+  valorDesconto     Decimal        @default(0) @db.Decimal(10, 2)
+  valorFrete        Decimal        @default(0) @db.Decimal(10, 2)
+  valorSeguro       Decimal        @default(0) @db.Decimal(10, 2)
+  valorOutrasDespesas Decimal      @default(0) @db.Decimal(10, 2)
+  valorTotal        Decimal        @db.Decimal(10, 2)
+
+  // Impostos Totais
+  baseCalculoICMS   Decimal        @default(0) @db.Decimal(10, 2)
+  valorICMS         Decimal        @default(0) @db.Decimal(10, 2)
+  valorICMSDeson    Decimal        @default(0) @db.Decimal(10, 2) // Desoneração
+  valorFCP          Decimal        @default(0) @db.Decimal(10, 2) // Fundo Combate Pobreza
+  baseCalculoICMSST Decimal        @default(0) @db.Decimal(10, 2)
+  valorICMSST       Decimal        @default(0) @db.Decimal(10, 2)
+  valorFCPST        Decimal        @default(0) @db.Decimal(10, 2)
+  valorFCPSTRet     Decimal        @default(0) @db.Decimal(10, 2)
+  valorII           Decimal        @default(0) @db.Decimal(10, 2) // Imposto Importação
+  valorIPI          Decimal        @default(0) @db.Decimal(10, 2)
+  valorIPIDevol     Decimal        @default(0) @db.Decimal(10, 2)
+  valorPIS          Decimal        @default(0) @db.Decimal(10, 2)
+  valorCOFINS       Decimal        @default(0) @db.Decimal(10, 2)
+  valorISS          Decimal        @default(0) @db.Decimal(10, 2)
+
+  // Status SEFAZ
+  status            StatusNF
+  statusSefaz       String?
+  motivoRejeicao    String?
+  protocolo         String?
+  dataAutorizacao   DateTime?
+
+  // Cancelamento
+  cancelada         Boolean        @default(false)
+  motivoCancelamento String?
+  dataCancelamento  DateTime?
+  protocoloCancelamento String?
+
+  // Observações
+  informacoesComplementares String?
+  informacoesFisco  String?
+
+  // Datas
+  dataEmissao       DateTime       @default(now())
+  dataSaida         DateTime?
+
+  // Ambiente
+  ambiente          AmbienteNF     @default(HOMOLOGACAO)
+
+  // Transporte
+  modalidadeFrete   Int            @default(0) // 0=Emitente, 1=Destinatário, 9=Sem frete
+
+  // Cobrança/Faturamento
+  numeroFatura      String?
+  valorOriginalFatura Decimal?     @db.Decimal(10, 2)
+  valorLiquidoFatura Decimal?      @db.Decimal(10, 2)
+
+  // Responsável Técnico
+  cnpjRespTec       String?
+  contatoRespTec    String?
+  emailRespTec      String?
+  foneRespTec       String?
+
+  // Versão do Processo Emissor
+  versaoProcesso    String?
+
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  // Relações
+  itens             ItemNotaFiscal[]
+  eventos           EventoNotaFiscal[]
+  duplicatas        DuplicataNotaFiscal[]
+  pagamentos        PagamentoNotaFiscal[]
+
+  @@map("notas_fiscais")
+}
+
+model ItemNotaFiscal {
+  id                String     @id @default(uuid())
+  sequencia         Int
+
+  produtoId         String
+  produto           Produto    @relation(fields: [produtoId], references: [id])
+
+  notaFiscalId      String
+  notaFiscal        NotaFiscal @relation(fields: [notaFiscalId], references: [id], onDelete: Cascade)
+
+  // Produto
+  codigoProduto     String
+  codigoEAN         String?    @default("SEM GTIN")
+  descricao         String
+  ncm               String?
+  cest              String?
+  cfop              String
+  unidade           String
+  unidadeTributavel String?
+
+  // Quantidades e Valores
+  quantidade        Decimal    @db.Decimal(10, 4)
+  quantidadeTributavel Decimal? @db.Decimal(10, 4)
+  valorUnitario     Decimal    @db.Decimal(10, 10)
+  valorUnitarioTributavel Decimal? @db.Decimal(10, 10)
+  valorDesconto     Decimal    @default(0) @db.Decimal(10, 2)
+  valorFrete        Decimal    @default(0) @db.Decimal(10, 2)
+  valorSeguro       Decimal    @default(0) @db.Decimal(10, 2)
+  valorOutrasDespesas Decimal  @default(0) @db.Decimal(10, 2)
+  valorTotal        Decimal    @db.Decimal(10, 2)
+  indicadorTotal    Int        @default(1) // 1=Compõe total, 0=Não compõe
+
+  // ICMS
+  origem            Int
+  cstICMS           String?
+  csosn             String?
+  modalidadeBC      Int?
+  baseCalculoICMS   Decimal    @default(0) @db.Decimal(10, 2)
+  aliquotaICMS      Decimal    @default(0) @db.Decimal(5, 4)
+  valorICMS         Decimal    @default(0) @db.Decimal(10, 2)
+  percentualCredSN  Decimal?   @db.Decimal(5, 4) // Crédito Simples Nacional
+  valorCredICMSSN   Decimal?   @db.Decimal(10, 2)
+
+  // ICMS ST
+  modalidadeBCST    Int?
+  baseCalculoICMSST Decimal    @default(0) @db.Decimal(10, 2)
+  aliquotaICMSST    Decimal    @default(0) @db.Decimal(5, 4)
+  valorICMSST       Decimal    @default(0) @db.Decimal(10, 2)
+
+  // IPI
+  cstIPI            String?
+  codigoEnquadramento String?  @default("999")
+  baseCalculoIPI    Decimal    @default(0) @db.Decimal(10, 2)
+  aliquotaIPI       Decimal    @default(0) @db.Decimal(5, 4)
+  valorIPI          Decimal    @default(0) @db.Decimal(10, 2)
+
+  // PIS
+  cstPIS            String?
+  baseCalculoPIS    Decimal    @default(0) @db.Decimal(10, 2)
+  aliquotaPIS       Decimal    @default(0) @db.Decimal(5, 4)
+  valorPIS          Decimal    @default(0) @db.Decimal(10, 2)
+
+  // COFINS
+  cstCOFINS         String?
+  baseCalculoCOFINS Decimal    @default(0) @db.Decimal(10, 2)
+  aliquotaCOFINS    Decimal    @default(0) @db.Decimal(5, 4)
+  valorCOFINS       Decimal    @default(0) @db.Decimal(10, 2)
+
+  // ISS (para serviços)
+  aliquotaISS       Decimal?   @db.Decimal(5, 4)
+  valorISS          Decimal?   @db.Decimal(10, 2)
+  codigoServico     String?
+  codigoTributacao  String?
+
+  informacoesAdicionais String?
+
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  // Relação com veículo (se aplicável)
+  veiculo           VeiculoNotaFiscal?
+
+  @@map("itens_notas_fiscais")
+}
+
+// Informações de Veículo (para vendas de veículos)
+model VeiculoNotaFiscal {
+  id                String          @id @default(uuid())
+
+  itemNotaFiscalId  String          @unique
+  itemNotaFiscal    ItemNotaFiscal  @relation(fields: [itemNotaFiscalId], references: [id], onDelete: Cascade)
+
+  tipoOperacao      Int             // 1=Venda concessionária, 2=Faturamento direto, 3=Venda direta, 0=Outros
+  chassi            String
+  codigoCor         String
+  descricaoCor      String
+  potenciaMotor     Int             @default(0)
+  cilindradas       Int             @default(0)
+  pesoLiquido       Decimal         @db.Decimal(10, 4)
+  pesoBruto         Decimal         @db.Decimal(10, 4)
+  numeroSerie       String          @default("0")
+  tipoCombustivel   Int             // 1=Álcool, 2=Gasolina, 3=Diesel, etc
+  numeroMotor       String          @default("0")
+  cmt               Decimal         @db.Decimal(10, 4) // Capacidade Máxima Tração
+  distanciaEixos    Decimal         @db.Decimal(10, 2)
+  anoModelo         Int
+  anoFabricacao     Int
+  tipoPintura       String          // F=Fábrica, R=Repintura
+  tipoVeiculo       Int             // 10=Reboque, etc
+  especieVeiculo    Int             // 2=Carga
+  condicaoVIN       String          // N=Normal, R=Remarcado
+  condicaoVeiculo   Int             // 1=Acabado, 2=Inacabado, 3=Semi-acabado
+  codigoMarcaModelo String?
+  codigoCorDENATRAN Int
+  lotacaoMaxima     Int             @default(0)
+  restricao         Int             @default(0)
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("veiculos_notas_fiscais")
+}
+
+// Duplicatas da Nota Fiscal
+model DuplicataNotaFiscal {
+  id            String     @id @default(uuid())
+
+  notaFiscalId  String
+  notaFiscal    NotaFiscal @relation(fields: [notaFiscalId], references: [id], onDelete: Cascade)
+
+  numero        String     // nDup
+  dataVencimento DateTime  // dVenc
+  valor         Decimal    @db.Decimal(10, 2)
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@map("duplicatas_notas_fiscais")
+}
+
+// Pagamentos da Nota Fiscal
+model PagamentoNotaFiscal {
+  id            String     @id @default(uuid())
+
+  notaFiscalId  String
+  notaFiscal    NotaFiscal @relation(fields: [notaFiscalId], references: [id], onDelete: Cascade)
+
+  indicadorPagamento Int   // 0=À vista, 1=À prazo
+  meioPagamento Int        // 01=Dinheiro, 02=Cheque, 03=Cartão Crédito, etc
+  valor         Decimal    @db.Decimal(10, 2)
+
+  // Cartão (se aplicável)
+  cnpjCredenciadora String?
+  bandeira      String?
+  numeroAutorizacao String?
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@map("pagamentos_notas_fiscais")
+}
+
+model EventoNotaFiscal {
+  id              String     @id @default(uuid())
+  tipo            TipoEvento
+  sequencia       Int
+  descricao       String
+  justificativa   String?
+
+  notaFiscalId    String
+  notaFiscal      NotaFiscal @relation(fields: [notaFiscalId], references: [id], onDelete: Cascade)
+
+  protocolo       String?
+  dataEvento      DateTime   @default(now())
+
+  createdAt       DateTime   @default(now())
+
+  @@map("eventos_notas_fiscais")
+}
+
+// ============================================
+// CONFIGURAÇÕES FISCAIS
+// ============================================
+
+model NaturezaOperacao {
+  id              String   @id @default(uuid())
+  codigo          String
+  descricao       String
+  cfop            String
+  finalidade      FinalidadeNF
+  tipo            TipoOperacao
+
+  empresaId       String
+  empresa         Empresa  @relation(fields: [empresaId], references: [id])
+
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  notasFiscais    NotaFiscal[]
+
+  @@unique([empresaId, codigo])
+  @@map("naturezas_operacao")
+}
+
+model ConfiguracaoNFe {
+  id                String   @id @default(uuid())
+
+  empresaId         String
+  empresa           Empresa  @relation(fields: [empresaId], references: [id])
+
+  // Série e Numeração
+  serie             String   @default("1")
+  proximoNumero     Int      @default(1)
+
+  // Ambiente
+  ambiente          AmbienteNF @default(HOMOLOGACAO)
+
+  // Certificado
+  usarCertificadoEmpresa Boolean @default(true)
+  certificadoDigital Bytes?
+  senhaCertificado  String?
+
+  // Configurações de Emissão
+  formatoImpressao  FormatoDANFE @default(RETRATO)
+  emailCopia        String?
+
+  // Contingência
+  tipoContingencia  TipoContingencia?
+  justificativaContingencia String?
+
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([empresaId])
+  @@map("configuracoes_nfe")
+}
+
+model ConfiguracaoNFCe {
+  id                String   @id @default(uuid())
+
+  empresaId         String
+  empresa           Empresa  @relation(fields: [empresaId], references: [id])
+
+  // Série e Numeração
+  serie             String   @default("1")
+  proximoNumero     Int      @default(1)
+
+  // Ambiente
+  ambiente          AmbienteNF @default(HOMOLOGACAO)
+
+  // Certificado
+  usarCertificadoEmpresa Boolean @default(true)
+  certificadoDigital Bytes?
+  senhaCertificado  String?
+
+  // Token CSC (Código de Segurança do Contribuinte)
+  idToken           String?
+  csc               String?
+
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([empresaId])
+  @@map("configuracoes_nfce")
+}
+
+model ConfiguracaoNFSe {
+  id                String   @id @default(uuid())
+
+  empresaId         String
+  empresa           Empresa  @relation(fields: [empresaId], references: [id])
+
+  // Série e Numeração
+  serie             String   @default("1")
+  proximoNumero     Int      @default(1)
+
+  // Ambiente
+  ambiente          AmbienteNF @default(HOMOLOGACAO)
+
+  // Certificado
+  usarCertificadoEmpresa Boolean @default(true)
+  certificadoDigital Bytes?
+  senhaCertificado  String?
+
+  // Configurações Específicas
+  rps               Boolean  @default(true)
+  lote              Boolean  @default(false)
+
+  // Provedor
+  provedor          String?
+  usuario           String?
+  senha             String?
+
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([empresaId])
+  @@map("configuracoes_nfse")
+}
+
+// ============================================
+// MATRIZ FISCAL
+// ============================================
+
+model MatrizFiscal {
+  id                String   @id @default(uuid())
+  nome              String
+  tipoImposto       TipoImposto
+  aplicaServico     Boolean  @default(false)
+  regimeFiscal      RegimeTributario
+
+  // Vigência
+  dataInicio        DateTime
+  dataFim           DateTime?
+
+  // Modelo NF
+  modeloNF          ModeloNF?
+
+  // Utilizar em Homologação
+  utilizarHomologacao Boolean @default(false)
+
+  empresaId         String
+  empresa           Empresa  @relation(fields: [empresaId], references: [id])
+
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relações
+  filtros           FiltroMatrizFiscal[]
+  definicoes        DefinicaoFiscalMatriz[]
+  aliquotas         AliquotaMatrizFiscal[]
+
+  @@map("matriz_fiscal")
+}
+
+model FiltroMatrizFiscal {
+  id                String       @id @default(uuid())
+
+  matrizFiscalId    String
+  matrizFiscal      MatrizFiscal @relation(fields: [matrizFiscalId], references: [id], onDelete: Cascade)
+
+  // Filtros
+  produtoId         String?
+  cfop              String?
+  tipoItem          TipoItem?
+  ncm               String?
+  atividadePrincipal Boolean?
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@map("filtros_matriz_fiscal")
+}
+
+model DefinicaoFiscalMatriz {
+  id                String       @id @default(uuid())
+
+  matrizFiscalId    String
+  matrizFiscal      MatrizFiscal @relation(fields: [matrizFiscalId], references: [id], onDelete: Cascade)
+
+  // CST/CSOSN
+  cst               String?
+  csosn             String?
+
+  // Modalidade BC
+  modalidadeBC      Int?
+  modalidadeBCST    Int?
+
+  // Redução BC
+  percentualReducaoBC Decimal?  @db.Decimal(5, 2)
+  percentualReducaoBCST Decimal? @db.Decimal(5, 2)
+
+  // MVA
+  percentualMVA     Decimal?     @db.Decimal(5, 2)
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@map("definicoes_fiscais_matriz")
+}
+
+model AliquotaMatrizFiscal {
+  id                String       @id @default(uuid())
+
+  matrizFiscalId    String
+  matrizFiscal      MatrizFiscal @relation(fields: [matrizFiscalId], references: [id], onDelete: Cascade)
+
+  // Alíquota
+  aliquota          Decimal      @db.Decimal(5, 4)
+
+  // Códigos Específicos
+  codigoAtividade   String?
+  codigoItemListaServico String?
+  codigoTributacao  String?
+  cnae              String?
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@map("aliquotas_matriz_fiscal")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum RegimeTributario {
+  SIMPLES_NACIONAL
+  SIMPLES_NACIONAL_EXCESSO
+  REGIME_NORMAL
+  MEI
+
+  @@map("regime_tributario")
+}
+
+enum PerfilUsuario {
+  ADMIN
+  GERENTE
+  VENDEDOR
+  OPERADOR
+
+  @@map("perfil_usuario")
+}
+
+enum TipoPessoa {
+  FISICA
+  JURIDICA
+
+  @@map("tipo_pessoa")
+}
+
+enum Sexo {
+  MASCULINO
+  FEMININO
+  OUTRO
+
+  @@map("sexo")
+}
+
+enum TipoEndereco {
+  RESIDENCIAL
+  COMERCIAL
+  COBRANCA
+  ENTREGA
+  OUTRO
+
+  @@map("tipo_endereco")
+}
+
+enum TipoConta {
+  CORRENTE
+  POUPANCA
+  SALARIO
+
+  @@map("tipo_conta")
+}
+
+enum TipoItem {
+  PRODUTO
+  SERVICO
+  MERCADORIA
+
+  @@map("tipo_item")
+}
+
+enum TipoVenda {
+  ORCAMENTO
+  PEDIDO
+  VENDA
+
+  @@map("tipo_venda")
+}
+
+enum StatusVenda {
+  ABERTA
+  APROVADA
+  FATURADA
+  CANCELADA
+
+  @@map("status_venda")
+}
+
+enum ModeloNF {
+  NFE // 55
+  NFCE // 65
+  NFSE // Nota Fiscal de Serviço Eletrônica
+  CTE // 57 - Conhecimento de Transporte Eletrônico
+  MDFE // 58 - Manifesto Eletrônico de Documentos Fiscais
+
+  @@map("modelo_nf")
+}
+
+enum TipoOperacao {
+  ENTRADA
+  SAIDA
+
+  @@map("tipo_operacao")
+}
+
+enum FinalidadeNF {
+  NORMAL
+  COMPLEMENTAR
+  AJUSTE
+  DEVOLUCAO
+
+  @@map("finalidade_nf")
+}
+
+enum StatusNF {
+  DIGITACAO
+  VALIDADA
+  ASSINADA
+  ENVIADA
+  AUTORIZADA
+  REJEITADA
+  CANCELADA
+  DENEGADA
+
+  @@map("status_nf")
+}
+
+enum AmbienteNF {
+  PRODUCAO
+  HOMOLOGACAO
+
+  @@map("ambiente_nf")
+}
+
+enum TipoEvento {
+  CANCELAMENTO
+  CARTA_CORRECAO
+  CONFIRMACAO_OPERACAO
+  CIENCIA_OPERACAO
+  DESCONHECIMENTO_OPERACAO
+  OPERACAO_NAO_REALIZADA
+
+  @@map("tipo_evento")
+}
+
+enum FormatoDANFE {
+  RETRATO
+  PAISAGEM
+  SIMPLIFICADO
+
+  @@map("formato_danfe")
+}
+
+enum TipoContingencia {
+  SVC_AN // SEFAZ Virtual de Contingência Ambiente Nacional
+  SVC_RS // SEFAZ Virtual de Contingência Rio Grande do Sul
+  OFFLINE // Contingência Off-Line
+
+  @@map("tipo_contingencia")
+}
+
+enum TipoImposto {
+  ICMS
+  ICMS_ST
+  IPI
+  PIS
+  COFINS
+  ISS
+  ISSQN
+  CSLL
+  IRPJ
+
+  @@map("tipo_imposto")
+}
+
