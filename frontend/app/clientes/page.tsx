@@ -10,7 +10,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 
 export default function Page() {
   // TODO: Pegar empresaId do contexto/auth
-  const empresaId = 'temp-empresa-id';
+  const empresaId = 'c0a0dd09-9ee1-46af-aef1-88f58fe78100'; // Empresa Exemplo LTDA
 
   const { data: clientes, isLoading } = useClientes(empresaId);
   const deleteCliente = useDeleteCliente();
@@ -61,11 +61,17 @@ export default function Page() {
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <ClientesDataTable
-                data={clientes || []}
-                onDelete={handleDelete}
-                onRestore={handleRestore}
-              />
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <p className="text-muted-foreground">Carregando clientes...</p>
+                </div>
+              ) : (
+                <ClientesDataTable
+                  data={clientes || []}
+                  onDelete={handleDelete}
+                  onRestore={handleRestore}
+                />
+              )}
             </div>
           </div>
         </div>

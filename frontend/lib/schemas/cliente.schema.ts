@@ -28,7 +28,7 @@ export const clienteSchema = z.object({
   rg: z.string().optional().or(z.literal('')),
   rgEmissor: z.string().optional().or(z.literal('')),
   rgUf: z.string().optional().or(z.literal('')),
-  sexo: z.nativeEnum(Sexo).optional(),
+  sexo: z.nativeEnum(Sexo).optional().or(z.literal('')),
   dataNascimento: z.string().optional().or(z.literal('')),
 
   // Pessoa Jurídica
@@ -66,21 +66,29 @@ export const clienteSchema = z.object({
 
   // Endereços
   enderecos: z.array(enderecoSchema).optional().default([]),
-}).refine(
-  (data) => {
-    if (data.tipo === TipoPessoa.FISICA) {
-      return !!data.cpf && data.cpf.length > 0;
+}).superRefine((data, ctx) => {
+  // Validar CPF para Pessoa Física
+  if (data.tipo === TipoPessoa.FISICA) {
+    if (!data.cpf || data.cpf.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'CPF é obrigatório para pessoa física',
+        path: ['cpf'],
+      });
     }
-    if (data.tipo === TipoPessoa.JURIDICA) {
-      return !!data.cnpj && data.cnpj.length > 0;
-    }
-    return true;
-  },
-  {
-    message: 'CPF é obrigatório para pessoa física e CNPJ para pessoa jurídica',
-    path: ['cpf'],
   }
-);
+
+  // Validar CNPJ para Pessoa Jurídica
+  if (data.tipo === TipoPessoa.JURIDICA) {
+    if (!data.cnpj || data.cnpj.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'CNPJ é obrigatório para pessoa jurídica',
+        path: ['cnpj'],
+      });
+    }
+  }
+});
 
 export type ClienteFormData = z.infer<typeof clienteSchema>;
 

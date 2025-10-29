@@ -43,7 +43,7 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
       rg: '',
       rgEmissor: '',
       rgUf: '',
-      sexo: undefined,
+      sexo: '' as any,
       dataNascimento: '',
       razaoSocial: '',
       nomeFantasia: '',
@@ -86,7 +86,7 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
         form.setValue('rg', '');
         form.setValue('rgEmissor', '');
         form.setValue('rgUf', '');
-        form.setValue('sexo', undefined);
+        form.setValue('sexo', '');
         form.setValue('dataNascimento', '');
       }
     }
@@ -175,7 +175,7 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
         rg: cliente.rg || '',
         rgEmissor: cliente.rgEmissor || '',
         rgUf: cliente.rgUf || '',
-        sexo: cliente.sexo,
+        sexo: cliente.sexo || '',
         dataNascimento: cliente.dataNascimento ? new Date(cliente.dataNascimento).toISOString().split('T')[0] : '',
         razaoSocial: cliente.razaoSocial || '',
         nomeFantasia: cliente.nomeFantasia || '',
@@ -208,6 +208,7 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
   const handleFormSubmit = (data: ClienteFormData) => {
     console.log('📝 Dados do formulário:', data);
     console.log('📍 Endereços:', enderecos);
+    console.log('🔍 Erros de validação:', form.formState.errors);
 
     // Limpar campos vazios e formatar dados
     const cleanData: any = {
@@ -218,6 +219,7 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
       rg: data.rg || undefined,
       rgEmissor: data.rgEmissor || undefined,
       rgUf: data.rgUf || undefined,
+      sexo: data.sexo && data.sexo !== '' ? data.sexo : undefined,
       dataNascimento: data.dataNascimento || undefined,
       razaoSocial: data.razaoSocial || undefined,
       nomeFantasia: data.nomeFantasia || undefined,
@@ -265,8 +267,18 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
     onSubmit(cleanData);
   };
 
+  const handleFormError = (errors: any) => {
+    console.error('❌ Erros de validação do formulário:', errors);
+
+    // Mostrar toast com o primeiro erro
+    const firstError = Object.values(errors)[0] as any;
+    if (firstError?.message) {
+      toast.error(firstError.message);
+    }
+  };
+
   return (
-    <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+    <form onSubmit={form.handleSubmit(handleFormSubmit, handleFormError)} className="space-y-4">
       {/* Dados Principais */}
       <Card>
         <CardContent className="pt-6 space-y-4">
@@ -306,7 +318,7 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
             <div className="col-span-6 md:col-span-4 space-y-1.5">
               <Label htmlFor="tipoPrecoId" className="text-sm">Lista de Preços</Label>
               <Select
-                value={form.watch('tipoPrecoId') || ''}
+                value={form.watch('tipoPrecoId') ?? ''}
                 onValueChange={(value) => form.setValue('tipoPrecoId', value)}
               >
                 <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -329,7 +341,13 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
               <>
                 <div className="col-span-12 md:col-span-7 space-y-1.5">
                   <Label htmlFor="nome" className="text-sm">Nome Completo *</Label>
-                  <Input id="nome" {...form.register('nome')} placeholder="Nome completo" className="h-9" />
+                  <Input
+                    id="nome"
+                    value={form.watch('nome') ?? ''}
+                    onChange={(e) => form.setValue('nome', e.target.value)}
+                    placeholder="Nome completo"
+                    className="h-9"
+                  />
                   {form.formState.errors.nome && (
                     <p className="text-xs text-destructive">{form.formState.errors.nome.message}</p>
                   )}
@@ -351,7 +369,7 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
                 <div className="col-span-12 md:col-span-2 space-y-1.5">
                   <Label htmlFor="sexo" className="text-sm">Sexo</Label>
                   <Select
-                    value={form.watch('sexo') || ''}
+                    value={form.watch('sexo') ?? ''}
                     onValueChange={(value) => form.setValue('sexo', value as Sexo)}
                   >
                     <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -364,23 +382,54 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
                 </div>
                 <div className="col-span-12 md:col-span-5 space-y-1.5">
                   <Label htmlFor="apelido" className="text-sm">Apelido</Label>
-                  <Input id="apelido" {...form.register('apelido')} placeholder="Como prefere ser chamado" className="h-9" />
+                  <Input
+                    id="apelido"
+                    value={form.watch('apelido') ?? ''}
+                    onChange={(e) => form.setValue('apelido', e.target.value)}
+                    placeholder="Como prefere ser chamado"
+                    className="h-9"
+                  />
                 </div>
                 <div className="col-span-12 md:col-span-3 space-y-1.5">
                   <Label htmlFor="rg" className="text-sm">RG</Label>
-                  <Input id="rg" {...form.register('rg')} placeholder="00.000.000-0" className="h-9" />
+                  <Input
+                    id="rg"
+                    value={form.watch('rg') ?? ''}
+                    onChange={(e) => form.setValue('rg', e.target.value)}
+                    placeholder="00.000.000-0"
+                    className="h-9"
+                  />
                 </div>
                 <div className="col-span-12 md:col-span-2 space-y-1.5">
                   <Label htmlFor="dataNascimento" className="text-sm">Aniversário</Label>
-                  <Input id="dataNascimento" type="date" {...form.register('dataNascimento')} className="h-9" />
+                  <Input
+                    id="dataNascimento"
+                    type="date"
+                    value={form.watch('dataNascimento') ?? ''}
+                    onChange={(e) => form.setValue('dataNascimento', e.target.value)}
+                    className="h-9"
+                  />
                 </div>
                 <div className="col-span-12 md:col-span-2 space-y-1.5">
                   <Label htmlFor="rgEmissor" className="text-sm">Emissor</Label>
-                  <Input id="rgEmissor" {...form.register('rgEmissor')} placeholder="SSP" className="h-9" />
+                  <Input
+                    id="rgEmissor"
+                    value={form.watch('rgEmissor') ?? ''}
+                    onChange={(e) => form.setValue('rgEmissor', e.target.value)}
+                    placeholder="SSP"
+                    className="h-9"
+                  />
                 </div>
                 <div className="col-span-12 md:col-span-1 space-y-1.5">
                   <Label htmlFor="rgUf" className="text-sm">UF</Label>
-                  <Input id="rgUf" {...form.register('rgUf')} placeholder="SP" maxLength={2} className="uppercase h-9" />
+                  <Input
+                    id="rgUf"
+                    value={form.watch('rgUf') ?? ''}
+                    onChange={(e) => form.setValue('rgUf', e.target.value)}
+                    placeholder="SP"
+                    maxLength={2}
+                    className="uppercase h-9"
+                  />
                 </div>
               </>
             ) : (
@@ -417,7 +466,13 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
                 </div>
                 <div className="col-span-12 md:col-span-8 space-y-1.5">
                   <Label htmlFor="nome" className="text-sm">Razão Social *</Label>
-                  <Input id="nome" {...form.register('nome')} placeholder="Razão social da empresa" className="h-9" />
+                  <Input
+                    id="nome"
+                    value={form.watch('nome') ?? ''}
+                    onChange={(e) => form.setValue('nome', e.target.value)}
+                    placeholder="Razão social da empresa"
+                    className="h-9"
+                  />
                   {form.formState.errors.nome && (
                     <p className="text-xs text-destructive">{form.formState.errors.nome.message}</p>
                   )}
@@ -425,7 +480,7 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
                 <div className="col-span-12 md:col-span-5 space-y-1.5">
                   <Label htmlFor="indicadorIE" className="text-sm">Indicador da IE</Label>
                   <Select
-                    value={String(form.watch('indicadorIE'))}
+                    value={String(form.watch('indicadorIE') ?? 9)}
                     onValueChange={(value) => form.setValue('indicadorIE', Number(value))}
                   >
                     <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -438,15 +493,33 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
                 </div>
                 <div className="col-span-12 md:col-span-7 space-y-1.5">
                   <Label htmlFor="nomeFantasia" className="text-sm">Nome Fantasia</Label>
-                  <Input id="nomeFantasia" {...form.register('nomeFantasia')} placeholder="Nome fantasia" className="h-9" />
+                  <Input
+                    id="nomeFantasia"
+                    value={form.watch('nomeFantasia') ?? ''}
+                    onChange={(e) => form.setValue('nomeFantasia', e.target.value)}
+                    placeholder="Nome fantasia"
+                    className="h-9"
+                  />
                 </div>
                 <div className="col-span-12 md:col-span-6 space-y-1.5">
                   <Label htmlFor="inscricaoEstadual" className="text-sm">Inscrição Estadual</Label>
-                  <Input id="inscricaoEstadual" {...form.register('inscricaoEstadual')} placeholder="000.000.000.000" className="h-9" />
+                  <Input
+                    id="inscricaoEstadual"
+                    value={form.watch('inscricaoEstadual') ?? ''}
+                    onChange={(e) => form.setValue('inscricaoEstadual', e.target.value)}
+                    placeholder="000.000.000.000"
+                    className="h-9"
+                  />
                 </div>
                 <div className="col-span-12 md:col-span-6 space-y-1.5">
                   <Label htmlFor="inscricaoMunicipal" className="text-sm">Inscrição Municipal</Label>
-                  <Input id="inscricaoMunicipal" {...form.register('inscricaoMunicipal')} placeholder="000000000" className="h-9" />
+                  <Input
+                    id="inscricaoMunicipal"
+                    value={form.watch('inscricaoMunicipal') ?? ''}
+                    onChange={(e) => form.setValue('inscricaoMunicipal', e.target.value)}
+                    placeholder="000000000"
+                    className="h-9"
+                  />
                 </div>
               </>
             )}
@@ -480,12 +553,25 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
             </div>
             <div className="col-span-12 md:col-span-6 space-y-1.5">
               <Label htmlFor="email" className="text-sm">Email</Label>
-              <Input id="email" type="email" {...form.register('email')} placeholder="email@exemplo.com" className="h-9" />
+              <Input
+                id="email"
+                type="email"
+                value={form.watch('email') ?? ''}
+                onChange={(e) => form.setValue('email', e.target.value)}
+                placeholder="email@exemplo.com"
+                className="h-9"
+              />
             </div>
             {tipoPessoa === TipoPessoa.JURIDICA && (
               <div className="col-span-12 space-y-1.5">
                 <Label htmlFor="site" className="text-sm">Site</Label>
-                <Input id="site" {...form.register('site')} placeholder="Ex: http://www.site.com.br" className="h-9" />
+                <Input
+                  id="site"
+                  value={form.watch('site') ?? ''}
+                  onChange={(e) => form.setValue('site', e.target.value)}
+                  placeholder="Ex: http://www.site.com.br"
+                  className="h-9"
+                />
               </div>
             )}
           </div>
@@ -496,7 +582,14 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
           <div className="grid grid-cols-12 gap-3">
             <div className="col-span-12 md:col-span-9 space-y-1.5">
               <Label htmlFor="observacao" className="text-sm">Observação</Label>
-              <Textarea id="observacao" {...form.register('observacao')} placeholder="Informações adicionais sobre o cliente" rows={2} className="resize-none" />
+              <Textarea
+                id="observacao"
+                value={form.watch('observacao') ?? ''}
+                onChange={(e) => form.setValue('observacao', e.target.value)}
+                placeholder="Informações adicionais sobre o cliente"
+                rows={2}
+                className="resize-none"
+              />
             </div>
             <div className="col-span-12 md:col-span-3 space-y-1.5">
               <Label htmlFor="limiteCredito" className="text-sm">Limite de Crédito</Label>
@@ -504,7 +597,8 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
                 id="limiteCredito"
                 type="number"
                 step="0.01"
-                {...form.register('limiteCredito', { valueAsNumber: true })}
+                value={form.watch('limiteCredito') ?? 0}
+                onChange={(e) => form.setValue('limiteCredito', parseFloat(e.target.value) || 0)}
                 placeholder="R$ 0,00"
                 className="h-9"
               />
@@ -518,7 +612,14 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
         <CardContent className="pt-6 space-y-3">
           <div className="space-y-1.5">
             <Label htmlFor="emailNFe" className="text-sm">Email do Destinatário da NFe</Label>
-            <Input id="emailNFe" type="email" {...form.register('emailNFe')} placeholder="nfe@exemplo.com" className="h-9" />
+            <Input
+              id="emailNFe"
+              type="email"
+              value={form.watch('emailNFe') ?? ''}
+              onChange={(e) => form.setValue('emailNFe', e.target.value)}
+              placeholder="nfe@exemplo.com"
+              className="h-9"
+            />
           </div>
 
           <div className="flex flex-wrap gap-4">
