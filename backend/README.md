@@ -20,15 +20,13 @@ cp .env.example .env
 docker-compose up -d
 ```
 
-### 4. Executar Migrations
-```bash
-npx prisma migrate dev
-```
-
-### 5. Iniciar Aplicação
+### 4. Iniciar Aplicação
 ```bash
 npm run start:dev
 ```
+
+> **✨ Novidade:** As migrations e o seed agora são executados automaticamente antes de iniciar o servidor!
+> Não é mais necessário executar `npx prisma migrate dev` ou `npx prisma db seed` manualmente.
 
 **API:** `http://localhost:3000`
 
@@ -55,15 +53,18 @@ docker-compose exec postgres psql -U postgres -d comixsys
 
 ### Prisma
 ```bash
-# Migrations
-npx prisma migrate dev
-npx prisma migrate deploy
+# Migrations (executadas automaticamente no start:dev)
+npm run migrate:deploy    # Executar migrations pendentes
+npm run migrate:dev       # Criar nova migration
+npm run migrate:reset     # Resetar banco e migrations
 
 # Studio (GUI)
-npx prisma studio
+npm run db:studio         # Abrir Prisma Studio
+npx prisma studio         # Alternativa
 
 # Generate Client
-npx prisma generate
+npm run db:generate       # Gerar Prisma Client
+npx prisma generate       # Alternativa
 ```
 
 ## 📁 Estrutura
@@ -107,20 +108,41 @@ backend/
 - `GET /auxiliares/marcas`
 - `GET /auxiliares/tipos-preco`
 
-## 🔧 Scripts
+## 🔧 Scripts Disponíveis
 
+### Desenvolvimento
 ```bash
-# Desenvolvimento
-npm run start:dev
+npm run start:dev         # Inicia servidor em modo desenvolvimento (com migrations automáticas)
+npm run start:debug       # Inicia em modo debug (com migrations automáticas)
+```
 
-# Build
-npm run build
+### Produção
+```bash
+npm run build             # Compila o projeto
+npm run start:prod        # Inicia servidor em produção (com migrations automáticas)
+```
 
-# Produção
-npm run start:prod
+### Banco de Dados
+```bash
+npm run migrate:deploy    # Executa migrations pendentes
+npm run migrate:dev       # Cria nova migration
+npm run migrate:reset     # Reseta banco e migrations
+npm run db:studio         # Abre Prisma Studio
+npm run db:generate       # Gera Prisma Client
+```
 
-# Testes
-npm run test
+### Testes
+```bash
+npm run test              # Executa testes
+npm run test:watch        # Executa testes em modo watch
+npm run test:cov          # Executa testes com cobertura
+npm run test:e2e          # Executa testes E2E
+```
+
+### Qualidade de Código
+```bash
+npm run lint              # Executa linter
+npm run format            # Formata código
 ```
 
 ## 🐛 Troubleshooting

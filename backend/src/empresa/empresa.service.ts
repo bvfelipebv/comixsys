@@ -17,8 +17,16 @@ export class EmpresaService {
       throw new ConflictException('CNPJ já cadastrado');
     }
 
+    // Converter Buffer para Uint8Array se necessário
+    const data = {
+      ...createEmpresaDto,
+      certificadoDigital: createEmpresaDto.certificadoDigital
+        ? new Uint8Array(createEmpresaDto.certificadoDigital)
+        : undefined,
+    };
+
     return this.prisma.empresa.create({
-      data: createEmpresaDto,
+      data,
     });
   }
 
@@ -68,9 +76,17 @@ export class EmpresaService {
       }
     }
 
+    // Converter Buffer para Uint8Array se necessário
+    const data = {
+      ...updateEmpresaDto,
+      certificadoDigital: updateEmpresaDto.certificadoDigital
+        ? new Uint8Array(updateEmpresaDto.certificadoDigital)
+        : undefined,
+    };
+
     return this.prisma.empresa.update({
       where: { id },
-      data: updateEmpresaDto,
+      data,
     });
   }
 

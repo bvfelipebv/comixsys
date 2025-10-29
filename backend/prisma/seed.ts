@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, FinalidadeNF, TipoOperacao } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -145,29 +145,29 @@ async function main() {
       codigo: '5102',
       descricao: 'Venda de mercadoria adquirida ou recebida de terceiros',
       cfop: '5102',
-      finalidade: 'NORMAL',
-      tipo: 'SAIDA',
+      finalidade: FinalidadeNF.NORMAL,
+      tipo: TipoOperacao.SAIDA,
     },
     {
       codigo: '5101',
       descricao: 'Venda de produção do estabelecimento',
       cfop: '5101',
-      finalidade: 'NORMAL',
-      tipo: 'SAIDA',
+      finalidade: FinalidadeNF.NORMAL,
+      tipo: TipoOperacao.SAIDA,
     },
     {
       codigo: '5405',
       descricao: 'Venda de mercadoria adquirida ou recebida de terceiros em operação com mercadoria sujeita ao regime de substituição tributária',
       cfop: '5405',
-      finalidade: 'NORMAL',
-      tipo: 'SAIDA',
+      finalidade: FinalidadeNF.NORMAL,
+      tipo: TipoOperacao.SAIDA,
     },
     {
       codigo: '6102',
       descricao: 'Venda de mercadoria adquirida ou recebida de terceiros - Interestadual',
       cfop: '6102',
-      finalidade: 'NORMAL',
-      tipo: 'SAIDA',
+      finalidade: FinalidadeNF.NORMAL,
+      tipo: TipoOperacao.SAIDA,
     },
   ];
 
