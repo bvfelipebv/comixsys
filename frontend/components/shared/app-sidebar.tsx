@@ -44,7 +44,7 @@ import {
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import { NavUser } from "@/components/nav-user"
+import { NavUser } from "@/components/shared/nav-user"
 import { Label } from "@/components/ui/label"
 import {
   Sidebar,
@@ -217,10 +217,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       Object.values(data.subMenus).forEach(menuItems => {
         menuItems.forEach(item => {
           // Pular separadores na busca
-          if (item.type === 'separator') return
+          if ('type' in item && item.type === 'separator') return
 
           if (item.title.toLowerCase().includes(searchTerm.toLowerCase())) {
-            if (!addedUrls.has(item.url)) {
+            if ('url' in item && item.url && !addedUrls.has(item.url)) {
               allItems.push({
                 ...item,
                 isMainItem: false,
@@ -253,7 +253,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       // Quando não há busca, mostrar apenas subitens do menu ativo
       const itemsWithKeys = subItems.map((item, index) => ({
         ...item,
-        uniqueKey: item.type === 'separator' ? `separator-${index}` : `current-${item.url}-${index}`
+        uniqueKey: ('type' in item && item.type === 'separator')
+          ? `separator-${index}`
+          : `current-${'url' in item ? item.url : 'unknown'}-${index}`
       }))
       setFilteredSubItems(itemsWithKeys)
     }
@@ -355,7 +357,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               {filteredSubItems.length > 0 ? (
                 filteredSubItems.map((item) => {
                   // Renderizar separador
-                  if (item.type === 'separator') {
+                  if ('type' in item && item.type === 'separator') {
                     return (
                       <div key={item.uniqueKey} className="px-4 py-2">
                         <div className="flex items-center gap-3">
@@ -370,17 +372,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   }
 
                   // Renderizar item normal
+                  const itemUrl = 'url' in item ? item.url : '#'
                   return (
                     <Link
-                      href={item.url}
-                      key={item.uniqueKey || item.url}
+                      href={itemUrl}
+                      key={item.uniqueKey || itemUrl}
                       className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex flex-col items-start gap-2 border-b p-4 text-sm leading-tight whitespace-nowrap last:border-b-0"
                     >
                       <div className="flex w-full items-center gap-2">
-                        {item.icon && <item.icon className="size-4" />}
+                        {'icon' in item && item.icon && <item.icon className="size-4" />}
                         <div className="flex flex-col">
                           <span className="font-medium">{item.title}</span>
-                          {searchTerm && item.isMainItem && (
+                          {searchTerm && 'isMainItem' in item && item.isMainItem && (
                             <span className="text-xs text-muted-foreground">Menu Principal</span>
                           )}
                         </div>

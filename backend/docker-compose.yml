@@ -1,0 +1,54 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: comixsys-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - comixsys_network
+
+  # DbGate - Database Administration Tool
+  dbgate:
+    image: dbgate/dbgate:latest
+    container_name: comixsys-dbgate
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    environment:
+      CONNECTIONS: comixsys_db
+      LABEL_comixsys_db: ComixSys PostgreSQL
+      SERVER_comixsys_db: postgres
+      USER_comixsys_db: ${POSTGRES_USER}
+      PASSWORD_comixsys_db: ${POSTGRES_PASSWORD}
+      PORT_comixsys_db: 5432
+      ENGINE_comixsys_db: postgres@dbgate-plugin-postgres
+      DATABASE_comixsys_db: ${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - comixsys_network
+
+networks:
+  comixsys_network:
+    driver: bridge
+    name: comixsys_network
+
+volumes:
+  postgres_data:
+    name: comixsys_postgres_data
+

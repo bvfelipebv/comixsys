@@ -1,7 +1,7 @@
-import { AppSidebar } from "@/components/app-sidebar"
-import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-import { DataTable } from "@/components/data-table"
-import { SectionCards } from "@/components/section-cards"
+import { AppSidebar } from "@/components/shared/app-sidebar"
+import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive"
+import { DataTable } from "@/components/dashboard/data-table"
+import { SectionCards } from "@/components/dashboard/section-cards"
 import {
   Breadcrumb,
   BreadcrumbItem,

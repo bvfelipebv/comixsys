@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { useEmpresas, useUpdateEmpresa, useCreateEmpresa } from '@/hooks';
 import { type EmpresaFormData } from '@/lib/schemas';
 import { EmpresaForm } from '@/components/configuracoes/empresa/empresa-form';
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppSidebar } from "@/components/shared/app-sidebar";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";

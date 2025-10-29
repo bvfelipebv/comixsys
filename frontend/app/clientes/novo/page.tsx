@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useCreateCliente } from '@/hooks';
 import { type ClienteFormData } from '@/lib/schemas';
 import { ClienteForm } from '@/components/clientes/cliente-form';
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppSidebar } from "@/components/shared/app-sidebar";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbLink, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
