@@ -194,7 +194,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [activeItem, setActiveItem] = React.useState(data.navMain[0])
   const [searchTerm, setSearchTerm] = React.useState("")
   const [filteredSubItems, setFilteredSubItems] = React.useState<any[]>([])
-  const { setOpen } = useSidebar()
+  const { setOpen, open } = useSidebar()
 
   // Determinar item ativo baseado na URL atual
   React.useEffect(() => {
@@ -303,9 +303,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         hidden: false,
                       }}
                       onClick={() => {
+                        const isSameItem = activeItem?.url === item.url
                         setActiveItem(item)
                         setSearchTerm("")
-                        setOpen(true)
+                        setOpen(isSameItem ? !open : true)
                       }}
                       isActive={pathname.startsWith(item.url)}
                       className="px-2.5 md:px-2"
@@ -378,6 +379,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       href={itemUrl}
                       key={item.uniqueKey || itemUrl}
                       className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex flex-col items-start gap-2 border-b p-4 text-sm leading-tight whitespace-nowrap last:border-b-0"
+                      onClick={() => setOpen(false)}
                     >
                       <div className="flex w-full items-center gap-2">
                         {'icon' in item && item.icon && <item.icon className="size-4" />}

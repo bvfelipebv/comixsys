@@ -2,19 +2,28 @@
 
 import * as React from "react"
 import {
+  IconChevronDown,
   IconChevronLeft,
   IconChevronRight,
   IconChevronsLeft,
   IconChevronsRight,
   IconDotsVertical,
   IconLayoutColumns,
-  IconChevronDown,
-  IconPencil,
-  IconTrash,
-  IconRefresh,
   IconPlus,
+  IconRefresh,
+  IconTrash,
   IconUsers,
 } from "@tabler/icons-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -79,6 +88,8 @@ export function ClientesDataTable({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
+  const [clienteToDelete, setClienteToDelete] = React.useState<Cliente | null>(null)
+  const [clienteToRestore, setClienteToRestore] = React.useState<Cliente | null>(null)
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
@@ -166,45 +177,36 @@ export function ClientesDataTable({
     },
     {
       id: "actions",
+      header: "Ações",
       cell: ({ row }) => {
         const cliente = row.original
 
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            {cliente.ativo ? (
               <Button
                 variant="ghost"
-                className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
                 size="icon"
+                className="size-8 text-muted-foreground hover:text-destructive"
+                onClick={() => setClienteToDelete(cliente)}
+                title="Desativar"
               >
-                <IconDotsVertical />
-                <span className="sr-only">Abrir menu</span>
+                <IconTrash className="size-4" />
+                <span className="sr-only">Desativar</span>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuItem
-                onClick={() => router.push(`/clientes/${cliente.id}`)}
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-muted-foreground hover:text-foreground"
+                onClick={() => setClienteToRestore(cliente)}
+                title="Reativar"
               >
-                <IconPencil className="mr-2 size-4" />
-                Editar
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {cliente.ativo ? (
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={() => onDelete(cliente.id)}
-                >
-                  <IconTrash className="mr-2 size-4" />
-                  Desativar
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem onClick={() => onRestore(cliente.id)}>
-                  <IconRefresh className="mr-2 size-4" />
-                  Reativar
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <IconRefresh className="size-4" />
+                <span className="sr-only">Reativar</span>
+              </Button>
+            )}
+          </div>
         )
       },
     },
@@ -314,6 +316,8 @@ export function ClientesDataTable({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/clientes/${row.original.id}/editar`)}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>

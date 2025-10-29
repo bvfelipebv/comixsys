@@ -32,6 +32,32 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
   const [enderecos, setEnderecos] = React.useState<any[]>([]);
   const [isLoadingCnpj, setIsLoadingCnpj] = React.useState(false);
 
+  // Estados separados para manter dados de PF e PJ
+  const [dadosPF, setDadosPF] = React.useState({
+    nome: '',
+    apelido: '',
+    cpf: '',
+    rg: '',
+    rgEmissor: '',
+    rgUf: '',
+    sexo: '' as any,
+    dataNascimento: '',
+  });
+
+  const [dadosPJ, setDadosPJ] = React.useState({
+    nome: '',
+    razaoSocial: '',
+    nomeFantasia: '',
+    cnpj: '',
+    inscricaoEstadual: '',
+    inscricaoMunicipal: '',
+    indicadorIE: 9,
+  });
+
+  // Estados separados para endereços de PF e PJ
+  const [enderecosPF, setEnderecosPF] = React.useState<any[]>([]);
+  const [enderecosPJ, setEnderecosPJ] = React.useState<any[]>([]);
+
   const form = useForm<ClienteFormData>({
     resolver: zodResolver(clienteSchema),
     defaultValues: {
@@ -68,29 +94,89 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
   });
 
   const tipoPessoa = form.watch('tipo');
+  const [tipoAnterior, setTipoAnterior] = React.useState<TipoPessoa | null>(null);
 
-  // Limpar campos ao trocar tipo de pessoa
+  // Salvar dados do tipo atual antes de trocar
+  const salvarDadosAtuais = React.useCallback(() => {
+    if (tipoPessoa === TipoPessoa.FISICA) {
+      setDadosPF({
+        nome: form.getValues('nome'),
+        apelido: form.getValues('apelido'),
+        cpf: form.getValues('cpf'),
+        rg: form.getValues('rg'),
+        rgEmissor: form.getValues('rgEmissor'),
+        rgUf: form.getValues('rgUf'),
+        sexo: form.getValues('sexo'),
+        dataNascimento: form.getValues('dataNascimento'),
+      });
+      setEnderecosPF([...enderecos]); // Salvar endereços de PF
+    } else {
+      setDadosPJ({
+        nome: form.getValues('nome'),
+        razaoSocial: form.getValues('razaoSocial'),
+        nomeFantasia: form.getValues('nomeFantasia'),
+        cnpj: form.getValues('cnpj'),
+        inscricaoEstadual: form.getValues('inscricaoEstadual'),
+        inscricaoMunicipal: form.getValues('inscricaoMunicipal'),
+        indicadorIE: form.getValues('indicadorIE'),
+      });
+      setEnderecosPJ([...enderecos]); // Salvar endereços de PJ
+    }
+  }, [tipoPessoa, form, enderecos]);
+
+  // Restaurar dados ao trocar tipo (apenas se houve mudança de tipo)
   React.useEffect(() => {
-    if (!cliente) { // Só limpa se não estiver editando
+    // Inicializar tipo anterior
+    if (tipoAnterior === null) {
+      setTipoAnterior(tipoPessoa);
+      return;
+    }
+
+    // Só restaura se realmente mudou o tipo
+    if (tipoAnterior !== tipoPessoa) {
       if (tipoPessoa === TipoPessoa.FISICA) {
+        // Restaurar dados de PF
+        form.setValue('nome', dadosPF.nome);
+        form.setValue('apelido', dadosPF.apelido);
+        form.setValue('cpf', dadosPF.cpf);
+        form.setValue('rg', dadosPF.rg);
+        form.setValue('rgEmissor', dadosPF.rgEmissor);
+        form.setValue('rgUf', dadosPF.rgUf);
+        form.setValue('sexo', dadosPF.sexo);
+        form.setValue('dataNascimento', dadosPF.dataNascimento);
+        // Restaurar endereços de PF
+        setEnderecos([...enderecosPF]);
+        form.setValue('enderecos', enderecosPF as any);
         // Limpar campos de PJ
-        form.setValue('cnpj', '');
         form.setValue('razaoSocial', '');
         form.setValue('nomeFantasia', '');
+        form.setValue('cnpj', '');
         form.setValue('inscricaoEstadual', '');
         form.setValue('inscricaoMunicipal', '');
       } else {
+        // Restaurar dados de PJ
+        form.setValue('nome', dadosPJ.nome);
+        form.setValue('razaoSocial', dadosPJ.razaoSocial);
+        form.setValue('nomeFantasia', dadosPJ.nomeFantasia);
+        form.setValue('cnpj', dadosPJ.cnpj);
+        form.setValue('inscricaoEstadual', dadosPJ.inscricaoEstadual);
+        form.setValue('inscricaoMunicipal', dadosPJ.inscricaoMunicipal);
+        form.setValue('indicadorIE', dadosPJ.indicadorIE);
+        // Restaurar endereços de PJ
+        setEnderecos([...enderecosPJ]);
+        form.setValue('enderecos', enderecosPJ as any);
         // Limpar campos de PF
-        form.setValue('cpf', '');
         form.setValue('apelido', '');
+        form.setValue('cpf', '');
         form.setValue('rg', '');
         form.setValue('rgEmissor', '');
         form.setValue('rgUf', '');
-        form.setValue('sexo', '');
+        form.setValue('sexo', '' as any);
         form.setValue('dataNascimento', '');
       }
+      setTipoAnterior(tipoPessoa);
     }
-  }, [tipoPessoa, form, cliente]);
+  }, [tipoPessoa, dadosPF, dadosPJ, enderecosPF, enderecosPJ, tipoAnterior, form]);
 
   const buscarCnpj = async (cnpj: string) => {
     const cnpjLimpo = cnpj.replace(/\D/g, '');
@@ -167,6 +253,34 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
 
   useEffect(() => {
     if (cliente) {
+      const enderecosCliente = (cliente as any).enderecos || [];
+
+      // Inicializar estados separados com dados do cliente
+      if (cliente.tipo === TipoPessoa.FISICA) {
+        setDadosPF({
+          nome: cliente.nome,
+          apelido: cliente.apelido || '',
+          cpf: cliente.cpf || '',
+          rg: cliente.rg || '',
+          rgEmissor: cliente.rgEmissor || '',
+          rgUf: cliente.rgUf || '',
+          sexo: cliente.sexo || '',
+          dataNascimento: cliente.dataNascimento ? new Date(cliente.dataNascimento).toISOString().split('T')[0] : '',
+        });
+        setEnderecosPF(enderecosCliente);
+      } else {
+        setDadosPJ({
+          nome: cliente.nome,
+          razaoSocial: cliente.razaoSocial || '',
+          nomeFantasia: cliente.nomeFantasia || '',
+          cnpj: cliente.cnpj || '',
+          inscricaoEstadual: cliente.inscricaoEstadual || '',
+          inscricaoMunicipal: cliente.inscricaoMunicipal || '',
+          indicadorIE: cliente.indicadorIE,
+        });
+        setEnderecosPJ(enderecosCliente);
+      }
+
       form.reset({
         tipo: cliente.tipo,
         nome: cliente.nome,
@@ -198,10 +312,9 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
         tipoPrecoId: cliente.tipoPrecoId || '',
         enderecos: [],
       });
-      // Carregar endereços se existirem
-      if ((cliente as any).enderecos) {
-        setEnderecos((cliente as any).enderecos);
-      }
+
+      // Carregar endereços
+      setEnderecos(enderecosCliente);
     }
   }, [cliente, form]);
 
@@ -289,7 +402,12 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
               <ToggleGroup
                 type="single"
                 value={form.watch('tipo')}
-                onValueChange={(value) => value && form.setValue('tipo', value as TipoPessoa)}
+                onValueChange={(value) => {
+                  if (value) {
+                    salvarDadosAtuais();
+                    form.setValue('tipo', value as TipoPessoa);
+                  }
+                }}
                 className="justify-start"
               >
                 <ToggleGroupItem value={TipoPessoa.FISICA} aria-label="Pessoa Física" className="gap-2 h-9">
