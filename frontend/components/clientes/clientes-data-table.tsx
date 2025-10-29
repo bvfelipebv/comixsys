@@ -439,6 +439,62 @@ export function ClientesDataTable({
         </div>
       </div>
     </div>
+
+    {/* Dialog de confirmação para desativar */}
+    <AlertDialog open={!!clienteToDelete} onOpenChange={() => setClienteToDelete(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Desativar Cliente</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja desativar o cliente <strong>{clienteToDelete?.nome}</strong>?
+            <br />
+            O cliente será marcado como inativo e poderá ser reativado posteriormente.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              if (clienteToDelete) {
+                onDelete(clienteToDelete.id)
+                setClienteToDelete(null)
+              }
+            }}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Desativar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Dialog de confirmação para reativar */}
+    <AlertDialog open={!!clienteToRestore} onOpenChange={() => setClienteToRestore(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Reativar Cliente</AlertDialogTitle>
+          <AlertDialogDescription>
+            Deseja reativar o cliente <strong>{clienteToRestore?.nome}</strong>?
+            <br />
+            O cliente voltará a aparecer como ativo no sistema.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              if (clienteToRestore) {
+                onRestore(clienteToRestore.id)
+                setClienteToRestore(null)
+              }
+            }}
+          >
+            Reativar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>
   )
 }
 
