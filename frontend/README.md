@@ -2,7 +2,23 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### 1. Configurar Variáveis de Ambiente
+
+Primeiro, copie o arquivo `.env.example` para `.env.local`:
+
+```bash
+cp .env.example .env.local
+```
+
+Edite o arquivo `.env.local` se necessário para ajustar a URL da API.
+
+### 2. Instalar Dependências
+
+```bash
+npm install
+```
+
+### 3. Executar o Servidor de Desenvolvimento
 
 ```bash
 npm run dev
@@ -14,7 +30,7 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3001](http://localhost:3001) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
