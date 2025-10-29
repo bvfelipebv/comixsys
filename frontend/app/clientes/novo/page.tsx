@@ -15,14 +15,17 @@ export default function Page() {
   const createCliente = useCreateCliente();
 
   // TODO: Pegar empresaId do contexto/auth
-  const empresaId = 'temp-empresa-id';
+  const empresaId = 'c0a0dd09-9ee1-46af-aef1-88f58fe78100'; // Empresa Exemplo LTDA
 
   const handleSubmit = async (data: ClienteFormData) => {
+    console.log('🚀 Iniciando submit...', data);
     try {
-      await createCliente.mutateAsync(data);
+      const result = await createCliente.mutateAsync(data);
+      console.log('✅ Cliente criado:', result);
       toast.success('Cliente criado com sucesso!');
       router.push('/clientes');
     } catch (error: any) {
+      console.error('❌ Erro ao criar cliente:', error);
       toast.error(error.message || 'Erro ao criar cliente');
     }
   };
@@ -48,19 +51,12 @@ export default function Page() {
         </header>
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <div className="px-4 lg:px-6">
-                <div className="mb-6">
-                  <h1 className="text-3xl font-bold">Novo Cliente</h1>
-                  <p className="text-muted-foreground">Cadastre um novo cliente</p>
-                </div>
-
-                <ClienteForm
-                  empresaId={empresaId}
-                  onSubmit={handleSubmit}
-                  isLoading={createCliente.isPending}
-                />
-              </div>
+            <div className="flex flex-col gap-4 p-4 md:p-6">
+              <ClienteForm
+                empresaId={empresaId}
+                onSubmit={handleSubmit}
+                isLoading={createCliente.isPending}
+              />
             </div>
           </div>
         </div>

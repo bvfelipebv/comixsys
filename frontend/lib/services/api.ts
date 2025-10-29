@@ -14,6 +14,13 @@ export class ApiError extends Error {
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));
+    console.error('❌ API Error Details:', {
+      status: response.status,
+      statusText: response.statusText,
+      errorMessage: error.message,
+      errorData: error,
+      fullError: JSON.stringify(error, null, 2)
+    });
     throw new ApiError(response.status, error.message || 'Erro na requisição', error);
   }
 
@@ -21,7 +28,9 @@ async function handleResponse<T>(response: Response): Promise<T> {
     return null as T;
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log('✅ API Success:', data);
+  return data;
 }
 
 export const api = {
@@ -36,12 +45,20 @@ export const api = {
   },
 
   async post<T>(endpoint: string, data: any): Promise<T> {
+    console.log('🌐 POST Request:', {
+      url: `${API_BASE_URL}${endpoint}`,
+      data: data
+    });
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
+    });
+    console.log('📡 Response:', {
+      status: response.status,
+      statusText: response.statusText
     });
     return handleResponse<T>(response);
   },

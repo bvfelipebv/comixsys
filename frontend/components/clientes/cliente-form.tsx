@@ -5,15 +5,17 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { clienteSchema, type ClienteFormData } from '@/lib/schemas';
-import { TipoPessoa, Sexo, type Cliente } from '@/lib/types';
+import { TipoPessoa, Sexo, TipoEndereco, type Cliente } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { maskCPF, maskCNPJ, maskPhoneAuto, unmask } from '@/lib/utils/masks';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Loader2, User, Building2, Phone, Mail, Globe, DollarSign, FileText, Shield, Search } from 'lucide-react';
 import { EnderecoFormSection } from './endereco-form-section';
@@ -35,17 +37,60 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
     defaultValues: {
       tipo: TipoPessoa.FISICA,
       empresaId,
+      nome: '',
+      apelido: '',
+      cpf: '',
+      rg: '',
+      rgEmissor: '',
+      rgUf: '',
+      sexo: undefined,
+      dataNascimento: '',
+      razaoSocial: '',
+      nomeFantasia: '',
+      cnpj: '',
+      inscricaoEstadual: '',
+      inscricaoMunicipal: '',
       indicadorIE: 9,
+      telefone: '',
+      celular: '',
+      email: '',
+      emailNFe: '',
+      site: '',
       issRetido: false,
       consumidorFinal: true,
       produtorRural: false,
       bloqueado: false,
       limiteCredito: 0,
+      observacao: '',
+      tipoPrecoId: '',
       enderecos: [],
     },
   });
 
   const tipoPessoa = form.watch('tipo');
+
+  // Limpar campos ao trocar tipo de pessoa
+  React.useEffect(() => {
+    if (!cliente) { // Só limpa se não estiver editando
+      if (tipoPessoa === TipoPessoa.FISICA) {
+        // Limpar campos de PJ
+        form.setValue('cnpj', '');
+        form.setValue('razaoSocial', '');
+        form.setValue('nomeFantasia', '');
+        form.setValue('inscricaoEstadual', '');
+        form.setValue('inscricaoMunicipal', '');
+      } else {
+        // Limpar campos de PF
+        form.setValue('cpf', '');
+        form.setValue('apelido', '');
+        form.setValue('rg', '');
+        form.setValue('rgEmissor', '');
+        form.setValue('rgUf', '');
+        form.setValue('sexo', undefined);
+        form.setValue('dataNascimento', '');
+      }
+    }
+  }, [tipoPessoa, form, cliente]);
 
   const buscarCnpj = async (cnpj: string) => {
     const cnpjLimpo = cnpj.replace(/\D/g, '');
@@ -160,79 +205,156 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
     }
   }, [cliente, form]);
 
+  const handleFormSubmit = (data: ClienteFormData) => {
+    console.log('📝 Dados do formulário:', data);
+    console.log('📍 Endereços:', enderecos);
+
+    // Limpar campos vazios e formatar dados
+    const cleanData: any = {
+      ...data,
+      // Remover campos vazios de strings (já estão sem máscara)
+      apelido: data.apelido || undefined,
+      cpf: data.cpf || undefined,
+      rg: data.rg || undefined,
+      rgEmissor: data.rgEmissor || undefined,
+      rgUf: data.rgUf || undefined,
+      dataNascimento: data.dataNascimento || undefined,
+      razaoSocial: data.razaoSocial || undefined,
+      nomeFantasia: data.nomeFantasia || undefined,
+      cnpj: data.cnpj || undefined,
+      inscricaoEstadual: data.inscricaoEstadual || undefined,
+      inscricaoMunicipal: data.inscricaoMunicipal || undefined,
+      telefone: data.telefone || undefined,
+      celular: data.celular || undefined,
+      email: data.email || undefined,
+      emailNFe: data.emailNFe || undefined,
+      site: data.site || undefined,
+      observacao: data.observacao || undefined,
+      tipoPrecoId: (data.tipoPrecoId && data.tipoPrecoId !== '') ? data.tipoPrecoId : undefined,
+      // Garantir valores booleanos
+      issRetido: data.issRetido ?? false,
+      consumidorFinal: data.consumidorFinal ?? true,
+      produtorRural: data.produtorRural ?? false,
+      bloqueado: data.bloqueado ?? false,
+      // Garantir valores numéricos
+      limiteCredito: Number(data.limiteCredito) || 0,
+      indicadorIE: Number(data.indicadorIE) || 9,
+      // Endereços
+      enderecos: enderecos.map(end => ({
+        tipo: end.tipo,
+        cep: end.cep.replace(/\D/g, ''),
+        logradouro: end.logradouro,
+        numero: end.numero,
+        complemento: end.complemento || undefined,
+        bairro: end.bairro,
+        cidade: end.cidade,
+        uf: end.uf,
+        principal: end.principal ?? false,
+      })),
+    };
+
+    // Remover campos undefined
+    Object.keys(cleanData).forEach(key => {
+      if (cleanData[key] === undefined) {
+        delete cleanData[key];
+      }
+    });
+
+    console.log('✅ Dados limpos para enviar:', cleanData);
+
+    onSubmit(cleanData);
+  };
+
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      {/* Ficha Cadastral */}
+    <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+      {/* Dados Principais */}
       <Card>
-        <CardHeader>
-          <CardTitle>Ficha Cadastral</CardTitle>
-          <CardDescription>Informações básicas do cliente</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="pt-6 space-y-4">
           {/* Tipo de Pessoa */}
-          <div className="space-y-3">
-            <Label>Pessoa Física ou Jurídica? *</Label>
-            <ToggleGroup
-              type="single"
-              value={form.watch('tipo')}
-              onValueChange={(value) => value && form.setValue('tipo', value as TipoPessoa)}
-              className="justify-start"
-            >
-              <ToggleGroupItem value={TipoPessoa.FISICA} aria-label="Pessoa Física" className="gap-2">
-                <User className="h-4 w-4" />
-                Física
-              </ToggleGroupItem>
-              <ToggleGroupItem value={TipoPessoa.JURIDICA} aria-label="Pessoa Jurídica" className="gap-2">
-                <Building2 className="h-4 w-4" />
-                Jurídica
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-
-          <Separator />
-
-          {/* Campos condicionais baseados no tipo */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="nome">{tipoPessoa === TipoPessoa.FISICA ? 'Nome Completo' : 'Razão Social'} *</Label>
-              <Input id="nome" {...form.register('nome')} placeholder={tipoPessoa === TipoPessoa.FISICA ? 'Nome completo' : 'Razão social da empresa'} />
-              {form.formState.errors.nome && (
-                <p className="text-sm text-destructive">{form.formState.errors.nome.message}</p>
-              )}
+          <div className="grid grid-cols-12 gap-3 items-end">
+            <div className="col-span-12 md:col-span-6 space-y-1.5">
+              <Label className="text-sm font-medium">Tipo de Pessoa *</Label>
+              <ToggleGroup
+                type="single"
+                value={form.watch('tipo')}
+                onValueChange={(value) => value && form.setValue('tipo', value as TipoPessoa)}
+                className="justify-start"
+              >
+                <ToggleGroupItem value={TipoPessoa.FISICA} aria-label="Pessoa Física" className="gap-2 h-9">
+                  <User className="h-3.5 w-3.5" />
+                  Física
+                </ToggleGroupItem>
+                <ToggleGroupItem value={TipoPessoa.JURIDICA} aria-label="Pessoa Jurídica" className="gap-2 h-9">
+                  <Building2 className="h-3.5 w-3.5" />
+                  Jurídica
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
 
+            <div className="col-span-6 md:col-span-2 space-y-1.5">
+              <Label htmlFor="bloqueado" className="text-sm">Bloqueado</Label>
+              <div className="flex items-center h-9">
+                <Switch
+                  id="bloqueado"
+                  checked={form.watch('bloqueado')}
+                  onCheckedChange={(checked) => form.setValue('bloqueado', checked)}
+                  className="data-[state=checked]:bg-red-600"
+                />
+              </div>
+            </div>
+
+            <div className="col-span-6 md:col-span-4 space-y-1.5">
+              <Label htmlFor="tipoPrecoId" className="text-sm">Lista de Preços</Label>
+              <Select
+                value={form.watch('tipoPrecoId') || ''}
+                onValueChange={(value) => form.setValue('tipoPrecoId', value)}
+              >
+                <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="padrao">Padrão</SelectItem>
+                  <SelectItem value="promocional">Promocional</SelectItem>
+                  <SelectItem value="atacado">Atacado</SelectItem>
+                  <SelectItem value="varejo">Varejo</SelectItem>
+                  {/* TODO: Carregar tipos de preço do backend */}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Separator className="my-4" />
+
+          {/* Campos condicionais baseados no tipo */}
+          <div className="grid grid-cols-12 gap-3">
             {tipoPessoa === TipoPessoa.FISICA ? (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="apelido">Apelido</Label>
-                  <Input id="apelido" {...form.register('apelido')} placeholder="Como prefere ser chamado" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cpf">CPF *</Label>
-                  <Input id="cpf" {...form.register('cpf')} placeholder="000.000.000-00" maxLength={11} />
-                  {form.formState.errors.cpf && (
-                    <p className="text-sm text-destructive">{form.formState.errors.cpf.message}</p>
+                <div className="col-span-12 md:col-span-7 space-y-1.5">
+                  <Label htmlFor="nome" className="text-sm">Nome Completo *</Label>
+                  <Input id="nome" {...form.register('nome')} placeholder="Nome completo" className="h-9" />
+                  {form.formState.errors.nome && (
+                    <p className="text-xs text-destructive">{form.formState.errors.nome.message}</p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rg">RG</Label>
-                  <Input id="rg" {...form.register('rg')} placeholder="00.000.000-0" />
+                <div className="col-span-12 md:col-span-3 space-y-1.5">
+                  <Label htmlFor="cpf" className="text-sm">CPF *</Label>
+                  <Input
+                    id="cpf"
+                    value={maskCPF(form.watch('cpf') ?? '')}
+                    onChange={(e) => form.setValue('cpf', unmask(e.target.value))}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                    className="h-9"
+                  />
+                  {form.formState.errors.cpf && (
+                    <p className="text-xs text-destructive">{form.formState.errors.cpf.message}</p>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rgEmissor">Emissor</Label>
-                  <Input id="rgEmissor" {...form.register('rgEmissor')} placeholder="SSP" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rgUf">UF</Label>
-                  <Input id="rgUf" {...form.register('rgUf')} placeholder="SP" maxLength={2} className="uppercase" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sexo">Sexo</Label>
+                <div className="col-span-12 md:col-span-2 space-y-1.5">
+                  <Label htmlFor="sexo" className="text-sm">Sexo</Label>
                   <Select
-                    value={form.watch('sexo')}
+                    value={form.watch('sexo') || ''}
                     onValueChange={(value) => form.setValue('sexo', value as Sexo)}
                   >
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value={Sexo.MASCULINO}>Masculino</SelectItem>
                       <SelectItem value={Sexo.FEMININO}>Feminino</SelectItem>
@@ -240,136 +362,173 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dataNascimento">Aniversário</Label>
-                  <Input id="dataNascimento" type="date" {...form.register('dataNascimento')} />
+                <div className="col-span-12 md:col-span-5 space-y-1.5">
+                  <Label htmlFor="apelido" className="text-sm">Apelido</Label>
+                  <Input id="apelido" {...form.register('apelido')} placeholder="Como prefere ser chamado" className="h-9" />
+                </div>
+                <div className="col-span-12 md:col-span-3 space-y-1.5">
+                  <Label htmlFor="rg" className="text-sm">RG</Label>
+                  <Input id="rg" {...form.register('rg')} placeholder="00.000.000-0" className="h-9" />
+                </div>
+                <div className="col-span-12 md:col-span-2 space-y-1.5">
+                  <Label htmlFor="dataNascimento" className="text-sm">Aniversário</Label>
+                  <Input id="dataNascimento" type="date" {...form.register('dataNascimento')} className="h-9" />
+                </div>
+                <div className="col-span-12 md:col-span-2 space-y-1.5">
+                  <Label htmlFor="rgEmissor" className="text-sm">Emissor</Label>
+                  <Input id="rgEmissor" {...form.register('rgEmissor')} placeholder="SSP" className="h-9" />
+                </div>
+                <div className="col-span-12 md:col-span-1 space-y-1.5">
+                  <Label htmlFor="rgUf" className="text-sm">UF</Label>
+                  <Input id="rgUf" {...form.register('rgUf')} placeholder="SP" maxLength={2} className="uppercase h-9" />
                 </div>
               </>
             ) : (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="nomeFantasia">Nome Fantasia</Label>
-                  <Input id="nomeFantasia" {...form.register('nomeFantasia')} placeholder="Nome fantasia" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cnpj">CNPJ *</Label>
+                <div className="col-span-12 md:col-span-4 space-y-1.5">
+                  <Label htmlFor="cnpj" className="text-sm">CNPJ *</Label>
                   <div className="flex gap-2">
                     <Input
                       id="cnpj"
-                      value={form.watch('cnpj') || ''}
-                      onChange={(e) => handleCnpjChange(e.target.value)}
+                      value={maskCNPJ(form.watch('cnpj') ?? '')}
+                      onChange={(e) => handleCnpjChange(unmask(e.target.value))}
                       placeholder="00.000.000/0000-00"
-                      maxLength={14}
+                      maxLength={18}
+                      className="h-9"
                     />
                     <Button
                       type="button"
                       size="icon"
                       variant="outline"
-                      onClick={() => buscarCnpj(form.watch('cnpj') || '')}
+                      onClick={() => buscarCnpj(form.watch('cnpj') ?? '')}
                       disabled={isLoadingCnpj}
+                      className="h-9 w-9 shrink-0"
                     >
                       {isLoadingCnpj ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        <Search className="h-4 w-4" />
+                        <Search className="h-3.5 w-3.5" />
                       )}
                     </Button>
                   </div>
                   {form.formState.errors.cnpj && (
-                    <p className="text-sm text-destructive">{form.formState.errors.cnpj.message}</p>
+                    <p className="text-xs text-destructive">{form.formState.errors.cnpj.message}</p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="inscricaoEstadual">Inscrição Estadual</Label>
-                  <Input id="inscricaoEstadual" {...form.register('inscricaoEstadual')} placeholder="000.000.000.000" />
+                <div className="col-span-12 md:col-span-8 space-y-1.5">
+                  <Label htmlFor="nome" className="text-sm">Razão Social *</Label>
+                  <Input id="nome" {...form.register('nome')} placeholder="Razão social da empresa" className="h-9" />
+                  {form.formState.errors.nome && (
+                    <p className="text-xs text-destructive">{form.formState.errors.nome.message}</p>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="inscricaoMunicipal">Inscrição Municipal</Label>
-                  <Input id="inscricaoMunicipal" {...form.register('inscricaoMunicipal')} placeholder="000000000" />
+                <div className="col-span-12 md:col-span-5 space-y-1.5">
+                  <Label htmlFor="indicadorIE" className="text-sm">Indicador da IE</Label>
+                  <Select
+                    value={String(form.watch('indicadorIE'))}
+                    onValueChange={(value) => form.setValue('indicadorIE', Number(value))}
+                  >
+                    <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 - Contribuinte ICMS</SelectItem>
+                      <SelectItem value="2">2 - Contribuinte isento</SelectItem>
+                      <SelectItem value="9">9 - Não Contribuinte</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-12 md:col-span-7 space-y-1.5">
+                  <Label htmlFor="nomeFantasia" className="text-sm">Nome Fantasia</Label>
+                  <Input id="nomeFantasia" {...form.register('nomeFantasia')} placeholder="Nome fantasia" className="h-9" />
+                </div>
+                <div className="col-span-12 md:col-span-6 space-y-1.5">
+                  <Label htmlFor="inscricaoEstadual" className="text-sm">Inscrição Estadual</Label>
+                  <Input id="inscricaoEstadual" {...form.register('inscricaoEstadual')} placeholder="000.000.000.000" className="h-9" />
+                </div>
+                <div className="col-span-12 md:col-span-6 space-y-1.5">
+                  <Label htmlFor="inscricaoMunicipal" className="text-sm">Inscrição Municipal</Label>
+                  <Input id="inscricaoMunicipal" {...form.register('inscricaoMunicipal')} placeholder="000000000" className="h-9" />
                 </div>
               </>
             )}
           </div>
 
-          <Separator />
+          <Separator className="my-4" />
 
           {/* Contato */}
-          <div>
-            <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Contato
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input id="telefone" {...form.register('telefone')} placeholder="(00) 0000-0000" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="celular">Celular</Label>
-                <Input id="celular" {...form.register('celular')} placeholder="(00) 00000-0000" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...form.register('email')} placeholder="email@exemplo.com" />
-              </div>
-              {tipoPessoa === TipoPessoa.JURIDICA && (
-                <div className="space-y-2">
-                  <Label htmlFor="site">Site</Label>
-                  <Input id="site" {...form.register('site')} placeholder="Ex: http://www.site.com.br" />
-                </div>
-              )}
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 md:col-span-3 space-y-1.5">
+              <Label htmlFor="telefone" className="text-sm">Telefone</Label>
+              <Input
+                id="telefone"
+                value={maskPhoneAuto(form.watch('telefone') ?? '')}
+                onChange={(e) => form.setValue('telefone', unmask(e.target.value))}
+                placeholder="(00) 0000-0000"
+                maxLength={15}
+                className="h-9"
+              />
             </div>
+            <div className="col-span-12 md:col-span-3 space-y-1.5">
+              <Label htmlFor="celular" className="text-sm">Celular</Label>
+              <Input
+                id="celular"
+                value={maskPhoneAuto(form.watch('celular') ?? '')}
+                onChange={(e) => form.setValue('celular', unmask(e.target.value))}
+                placeholder="(00) 00000-0000"
+                maxLength={15}
+                className="h-9"
+              />
+            </div>
+            <div className="col-span-12 md:col-span-6 space-y-1.5">
+              <Label htmlFor="email" className="text-sm">Email</Label>
+              <Input id="email" type="email" {...form.register('email')} placeholder="email@exemplo.com" className="h-9" />
+            </div>
+            {tipoPessoa === TipoPessoa.JURIDICA && (
+              <div className="col-span-12 space-y-1.5">
+                <Label htmlFor="site" className="text-sm">Site</Label>
+                <Input id="site" {...form.register('site')} placeholder="Ex: http://www.site.com.br" className="h-9" />
+              </div>
+            )}
           </div>
 
-          <Separator />
+          <Separator className="my-4" />
 
-          {/* Observação */}
-          <div className="space-y-2">
-            <Label htmlFor="observacao">Observação</Label>
-            <Textarea id="observacao" {...form.register('observacao')} placeholder="Informações adicionais sobre o cliente" rows={3} />
-          </div>
-
-          <Separator />
-
-          {/* Limite de Crédito */}
-          <div className="space-y-2">
-            <Label htmlFor="limiteCredito" className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Limite de Crédito
-            </Label>
-            <Input
-              id="limiteCredito"
-              type="number"
-              step="0.01"
-              {...form.register('limiteCredito', { valueAsNumber: true })}
-              placeholder="R$ 0,00"
-            />
+          {/* Observação e Limite de Crédito */}
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 md:col-span-9 space-y-1.5">
+              <Label htmlFor="observacao" className="text-sm">Observação</Label>
+              <Textarea id="observacao" {...form.register('observacao')} placeholder="Informações adicionais sobre o cliente" rows={2} className="resize-none" />
+            </div>
+            <div className="col-span-12 md:col-span-3 space-y-1.5">
+              <Label htmlFor="limiteCredito" className="text-sm">Limite de Crédito</Label>
+              <Input
+                id="limiteCredito"
+                type="number"
+                step="0.01"
+                {...form.register('limiteCredito', { valueAsNumber: true })}
+                placeholder="R$ 0,00"
+                className="h-9"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Dados Fiscais */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Dados Fiscais
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="emailNFe">Email do Destinatário da NFe</Label>
-            <Input id="emailNFe" type="email" {...form.register('emailNFe')} placeholder="nfe@exemplo.com" />
+        <CardContent className="pt-6 space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="emailNFe" className="text-sm">Email do Destinatário da NFe</Label>
+            <Input id="emailNFe" type="email" {...form.register('emailNFe')} placeholder="nfe@exemplo.com" className="h-9" />
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-4">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="issRetido"
                 checked={form.watch('issRetido')}
                 onCheckedChange={(checked) => form.setValue('issRetido', checked as boolean)}
               />
-              <Label htmlFor="issRetido" className="cursor-pointer">ISS Retido na Fonte?</Label>
+              <Label htmlFor="issRetido" className="cursor-pointer text-sm">ISS Retido na Fonte?</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -377,7 +536,7 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
                 checked={form.watch('consumidorFinal')}
                 onCheckedChange={(checked) => form.setValue('consumidorFinal', checked as boolean)}
               />
-              <Label htmlFor="consumidorFinal" className="cursor-pointer">Consumidor Final?</Label>
+              <Label htmlFor="consumidorFinal" className="cursor-pointer text-sm">Consumidor Final?</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -385,7 +544,7 @@ export function ClienteForm({ cliente, empresaId, onSubmit, isLoading }: Cliente
                 checked={form.watch('produtorRural')}
                 onCheckedChange={(checked) => form.setValue('produtorRural', checked as boolean)}
               />
-              <Label htmlFor="produtorRural" className="cursor-pointer">Produtor Rural?</Label>
+              <Label htmlFor="produtorRural" className="cursor-pointer text-sm">Produtor Rural?</Label>
             </div>
           </div>
         </CardContent>

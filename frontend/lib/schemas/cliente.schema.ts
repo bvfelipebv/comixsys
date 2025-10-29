@@ -16,63 +16,63 @@ const enderecoSchema = z.object({
 
 export const clienteSchema = z.object({
   tipo: z.nativeEnum(TipoPessoa),
-  
+
   // Pessoa Física
   nome: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-  apelido: z.string().optional(),
+  apelido: z.string().optional().or(z.literal('')),
   cpf: z
     .string()
-    .length(11, 'CPF deve ter 11 dígitos')
-    .regex(/^\d{11}$/, 'CPF deve conter apenas números')
-    .optional(),
-  rg: z.string().optional(),
-  rgEmissor: z.string().optional(),
-  rgUf: z.string().length(2).optional(),
+    .optional()
+    .or(z.literal(''))
+    .refine((val) => !val || /^\d{11}$/.test(val), 'CPF deve ter 11 dígitos'),
+  rg: z.string().optional().or(z.literal('')),
+  rgEmissor: z.string().optional().or(z.literal('')),
+  rgUf: z.string().optional().or(z.literal('')),
   sexo: z.nativeEnum(Sexo).optional(),
-  dataNascimento: z.string().optional(),
-  
+  dataNascimento: z.string().optional().or(z.literal('')),
+
   // Pessoa Jurídica
-  razaoSocial: z.string().optional(),
-  nomeFantasia: z.string().optional(),
+  razaoSocial: z.string().optional().or(z.literal('')),
+  nomeFantasia: z.string().optional().or(z.literal('')),
   cnpj: z
     .string()
-    .length(14, 'CNPJ deve ter 14 dígitos')
-    .regex(/^\d{14}$/, 'CNPJ deve conter apenas números')
-    .optional(),
-  inscricaoEstadual: z.string().optional(),
-  inscricaoMunicipal: z.string().optional(),
-  indicadorIE: z.number().int().min(1).max(9).optional(),
-  
+    .optional()
+    .or(z.literal(''))
+    .refine((val) => !val || /^\d{14}$/.test(val), 'CNPJ deve ter 14 dígitos'),
+  inscricaoEstadual: z.string().optional().or(z.literal('')),
+  inscricaoMunicipal: z.string().optional().or(z.literal('')),
+  indicadorIE: z.number().int().min(1).max(9).default(9),
+
   // Contato
-  telefone: z.string().optional(),
-  celular: z.string().optional(),
+  telefone: z.string().optional().or(z.literal('')),
+  celular: z.string().optional().or(z.literal('')),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   emailNFe: z.string().email('Email inválido').optional().or(z.literal('')),
-  site: z.string().url('URL inválida').optional().or(z.literal('')),
-  
+  site: z.string().optional().or(z.literal('')),
+
   // Fiscal
-  issRetido: z.boolean().optional(),
-  consumidorFinal: z.boolean().optional(),
-  produtorRural: z.boolean().optional(),
-  
+  issRetido: z.boolean().default(false),
+  consumidorFinal: z.boolean().default(true),
+  produtorRural: z.boolean().default(false),
+
   // Financeiro
-  limiteCredito: z.number().min(0).optional(),
-  bloqueado: z.boolean().optional(),
-  
-  observacao: z.string().optional(),
-  
+  limiteCredito: z.number().min(0).default(0),
+  bloqueado: z.boolean().default(false),
+
+  observacao: z.string().optional().or(z.literal('')),
+
   empresaId: z.string().uuid(),
-  tipoPrecoId: z.string().uuid().optional(),
-  
+  tipoPrecoId: z.string().optional().or(z.literal('')),
+
   // Endereços
-  enderecos: z.array(enderecoSchema).optional(),
+  enderecos: z.array(enderecoSchema).optional().default([]),
 }).refine(
   (data) => {
     if (data.tipo === TipoPessoa.FISICA) {
-      return !!data.cpf;
+      return !!data.cpf && data.cpf.length > 0;
     }
     if (data.tipo === TipoPessoa.JURIDICA) {
-      return !!data.cnpj;
+      return !!data.cnpj && data.cnpj.length > 0;
     }
     return true;
   },
